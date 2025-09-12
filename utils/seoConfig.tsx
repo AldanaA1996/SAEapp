@@ -36,7 +36,7 @@ export const manifest: Partial<ManifestOptions> = {
 	display: "minimal-ui",
 	icons: [
 		{
-			src: "/favicons/favicon-192x192.png",
+			src: "public/favicons/favicon-192x192.png",
 			sizes: "192x192",
 			type: "image/png"
 		},

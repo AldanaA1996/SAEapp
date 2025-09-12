@@ -5,10 +5,8 @@ import "src/styles/global.css"
 import App from "../../app/App"
 import Layout from "../../components/Layout/Layout.astro";
 import LayoutApp from "../../components/Layout/LayoutApp.astro";
-import { undefined } from "astro:schema";
 import LayoutPage from "../../components/Layout/LayoutPage.astro";
-import type { id } from "zod/v4/locales";
-
+import { z } from "zod";
 const title = "SAE Depo"
 
 export function getStaticPaths() {
