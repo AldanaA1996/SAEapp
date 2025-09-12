@@ -32,47 +32,36 @@ export default function DepartmentDetailPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log("documentId:", documentId);
     if (!documentId) return;
     const departmentId = parseInt(documentId);
 
     const fetchData = async () => {
-      setLoading(true);
+  setLoading(true);
 
-      // Traer departamento
-      const { data: depData, error: depError } = await supabase
-        .from("departments")
-        .select("*")
-        .eq("id", departmentId)
-        .single();
+  try {
+    const [depRes, matRes, toolsRes] = await Promise.all([
+      supabase.from("departments").select("*").eq("id", departmentId).single(),
+      supabase.from("inventory").select("*").eq("department_id", departmentId),
+      supabase.from("tools").select("id, name, description, amount").eq("department_id", departmentId),
+    ]);
 
-      if (depError) {
-        console.error("Error al traer departamento:", depError);
-        setLoading(false);
-        return;
-      }
+    if (depRes.error) throw depRes.error;
+    setDepartment(depRes.data);
 
-      setDepartment(depData);
+    if (matRes.error) console.error("Error al traer materiales:", matRes.error);
+    else setMaterials(matRes.data || []);
 
-      // Traer materiales
-      const { data: matData, error: matError } = await supabase
-        .from("inventory")
-        .select("*")
-        .eq("department_id", departmentId);
+    if (toolsRes.error) console.error("Error al traer herramientas:", toolsRes.error);
+    else setTools(toolsRes.data || []);
 
-      if (matError) console.error("Error al traer materiales:", matError);
-      else setMaterials(matData || []);
+  } catch (err) {
+    console.error("Error al cargar datos:", err);
+  } finally {
+    setLoading(false);
+  }
+};
 
-      // Traer herramientas
-      const { data: toolsData, error: toolsError } = await supabase
-        .from("tools")
-        .select(`id, name, description, amount`)
-        .eq("department_id", departmentId);
-
-      if (toolsError) console.error("Error al traer herramientas:", toolsError);
-      else setTools(toolsData || []);
-
-      setLoading(false);
-    };
 
     fetchData();
   }, [documentId]);

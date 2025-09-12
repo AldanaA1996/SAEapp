@@ -56,7 +56,7 @@ export default function App() {
                             </ProtectedRoute>
                         }
                     />
-                <Route path="/app/departments/:id" 
+                <Route path="/app/departments/:documentId" 
                         element={
                             <ProtectedRoute>
                               <DepartmentDetailPage/>

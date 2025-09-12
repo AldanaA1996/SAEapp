@@ -2,7 +2,8 @@
 
 import Layout from "@/app/components/layout";
 import AddToolForm from "../addTool-form";
-
+import { supabase } from "@/app/lib/supabaseClient";
+import { useAuthenticationStore } from "@/app/store/authentication";
 
 export function AddTool() {
   return (
