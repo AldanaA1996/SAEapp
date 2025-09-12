@@ -1,5 +1,5 @@
 import Login from "@/app/components/page/Login";
-import Dashboard from "@/app/components/page/Dashboard";
+import Inventario from "@/app/components/page/Inventory";
 import Home from "./components/page/Home";
 import DepartmentsPage from "@/app/components/page/departments/DepartmentsPage";
 import DepartmentDetailPage from "@/app/components/page/departments/[id]";
@@ -49,10 +49,10 @@ export default function App() {
                     }
                 />
                 <Route
-                    path="/app/dashboard"
+                    path="/app/inventario"
                     element={
                         <ProtectedRoute>
-                            <Dashboard />
+                            <Inventario />
                         </ProtectedRoute>
                     }
                 />

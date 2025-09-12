@@ -21,7 +21,7 @@ const items = [
   },
   {
     title: "Inventario",
-    url: "/app/dashboard",
+    url: "/app/inventario",
     icon: Package,
   },
   {

@@ -4,7 +4,8 @@ export default function Home() {
   return (
     <Layout>
       <div className="flex flex-col items-center w-full p-6">
-        <h1 className="text-3xl font-bold mb-6 text-center">¡Bienvenido a SAE Depo!</h1>
+        <h1 className="text-3xl font-bold mb-6 text-center">Bienvenido a S.A.E Depo</h1>
+         
         <div className="max-w-4xl mx-auto text-lg">
           <p className="mb-4">
             SAE Depo es tu sistema de gestión de inventario. Aquí puedes llevar un control de los materiales y herramientas en los diferentes departamentos de tu organización.
