@@ -67,6 +67,7 @@ function AddMaterialForm() {
         description: values.description,
         department_id: values.department_id,
         unit: values.unit,
+        created_at: new Date().toISOString(),
       },
      ])
      .select()
@@ -75,16 +76,21 @@ function AddMaterialForm() {
     if (matError) throw matError;
 
     //insertar mov en activity
+    const horaActual = new Date().toLocaleTimeString('en-GB')
     const { error: actError } = await supabase.from("activity").insert([
       {
-        name: values.name,
+        name: material.id,
         movementType: values.movementType,
         created_by: user?.id,
-        created_at: new Date(),
+        created_at: horaActual,
+        created_date: new Date().toISOString(),
       },
     ]);
 
     if (actError) throw actError;
+
+    form.reset();
+
     console.log("MATERIAL Y ACTIVITY CREADOS");
   } catch (err) {
     console.error("ERROR AL INTENTAR CREAR:", err);

@@ -6,6 +6,7 @@ import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
 import { supabase } from '../lib/supabaseClient';
+import { useAuthenticationStore } from '../store/authentication';
 
 const MovimientosT = ["entry", "exit", "repair", "discard"] as const;
 
@@ -28,6 +29,8 @@ const schema = z.object({
 function AddToolForm() {
   const [departments, setDepartments] = useState<any[]>([]);
   const [tools, setTools] = useState<any[]>([]);
+  const user = useAuthenticationStore((state) => state.user);
+
 
   useEffect(() => {
     const fetchDepartments = async () => {
@@ -71,6 +74,7 @@ function AddToolForm() {
             warrantyExpirationDate: values.warranty?.toISOString(),
             department_id: depId,
             description: values.description,
+            movementType: values.movementType,
           },
         ])
         .select()
@@ -79,13 +83,14 @@ function AddToolForm() {
       if (toolError) throw toolError;
 
       // 2️⃣ Crear el movimiento inicial (entrada)
+      const horaActual = new Date().toLocaleTimeString('en-GB')
       const { error: movementError } = await supabase.from('activity').insert([
         {
-          tool_id: toolData.id,
-          activity_type: values.movementType,
-          quantity: values.quantity,
-          department_id: depId,
-          created_at: new Date().toISOString(),
+        tool: toolData.id,
+        movementType: values.movementType,
+        created_by: user?.id,
+        created_at: horaActual,
+        created_date: new Date().toISOString(),
         },
       ]);
 
