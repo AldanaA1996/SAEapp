@@ -1,13 +1,14 @@
-export const readFiles = (files, callback) => {
+export const readFiles = (files: FileList, callback: (result: string) => void) => {
 	if (files.length == 0) {
 		return
 	}
 	let file = files[0]
 	const fileReader = new FileReader()
 	fileReader.onload = function () {
-		const result = fileReader.result.toString()
-
-		callback(result)
+		if (fileReader.result) {
+			const result = fileReader.result.toString()
+			callback(result)
+		}
 	}
 	fileReader.onerror = function () {
 		console.warn("oops, something went wrong.")

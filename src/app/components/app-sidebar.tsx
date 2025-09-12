@@ -1,4 +1,4 @@
-import { HandHelping, Home, Inbox, Search, Settings, Drill, DoorOpen, UsersRound } from "lucide-react"
+import { ArrowUpDown, Home, Package, Search, Settings, Drill, DoorOpen, UsersRound } from "lucide-react"
 
 
 import {
@@ -16,11 +16,16 @@ import {
 const items = [
   {
     title: "Home",
-    url: "/app/dashboard",
+    url: "#",
     icon: Home,
   },
   {
-    title: "Tools",
+    title: "Inventario",
+    url: "/app/dashboard",
+    icon: Package,
+  },
+  {
+    title: "Herramientas",
     url: "/app/addTool",
     icon: Drill,
   },
@@ -30,19 +35,14 @@ const items = [
     icon: DoorOpen,
   },
   {
-    title: "Grupo",
+    title: "Movimientos",
     url: "#",
-    icon: UsersRound,
+    icon: ArrowUpDown,
   },
   {
     title: "Voluntarios",
     url: "#",
-    icon: HandHelping,
-  },
-  {
-    title: "Configuración",
-    url: "#",
-    icon: Settings,
+    icon: UsersRound,
   },
   
 ]

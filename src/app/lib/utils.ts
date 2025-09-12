@@ -7,7 +7,7 @@ export function cn(...inputs: ClassValue[]) {
 export const getImageFrom = (
   image:
     | string
-    | { formats: { format: { small: { url }; thumbnail: { url } } } },
+    | { formats: { small: { url: string }; thumbnail: { url: string } } },
   format: "small" | "thumbnail",
 ): string => {
   if (typeof image === "string") {

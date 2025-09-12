@@ -1,5 +1,3 @@
-// Type imports
-import type { TwitterCardType } from "astro-seo"
 import type { ManifestOptions } from "vite-plugin-pwa"
 
 const NAME = "SAE Depo"
@@ -22,7 +20,7 @@ export const seoConfig = {
 	},
 	siteName: NAME,
 	twitter: {
-		card: "summary_large_image" as TwitterCardType
+		card: "summary_large_image"
 	}
 }
 

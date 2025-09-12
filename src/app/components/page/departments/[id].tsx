@@ -4,12 +4,26 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/app/lib/supabaseClient";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/app/components/ui/tabs";
 import { Card } from "@/app/components/ui/card";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/app/components/ui/drawer";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
+import { Button } from "../../ui/button";
+import EditMaterialForm from "../../editMaterial";
+import { useMediaQuery } from "@/app/hooks/use-media-query";
+import { Trash2, SquarePen } from "lucide-react";
 
 type Inventory = {
-  id: number;
+  id: any;
   name: string;
   quantity: number;
-  unit: string;
+  unit: any;
+  weight?: number;
+  width?: number;
+  height?: number;
+  color?: string;
+  manufactur?: string;
+  barcode?: string;
+  hasQRcode?: boolean;
+  description?: string;
 };
 
 type Tool = {
@@ -30,41 +44,67 @@ export default function DepartmentDetailPage() {
   const [materials, setMaterials] = useState<Inventory[]>([]);
   const [tools, setTools] = useState<Tool[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedMaterial, setSelectedMaterial] = useState<Inventory | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
-  useEffect(() => {
-    console.log("documentId:", documentId);
+  const fetchData = async () => {
+    setLoading(true);
     if (!documentId) return;
     const departmentId = parseInt(documentId);
 
-    const fetchData = async () => {
-  setLoading(true);
+    try {
+      const [depRes, matRes, toolsRes] = await Promise.all([
+        supabase.from("departments").select("*").eq("id", departmentId).single(),
+        supabase.from("inventory").select("*").eq("department_id", departmentId),
+        supabase.from("tools").select("id, name, description, amount").eq("department_id", departmentId),
+      ]);
 
-  try {
-    const [depRes, matRes, toolsRes] = await Promise.all([
-      supabase.from("departments").select("*").eq("id", departmentId).single(),
-      supabase.from("inventory").select("*").eq("department_id", departmentId),
-      supabase.from("tools").select("id, name, description, amount").eq("department_id", departmentId),
-    ]);
+      if (depRes.error) throw depRes.error;
+      setDepartment(depRes.data);
 
-    if (depRes.error) throw depRes.error;
-    setDepartment(depRes.data);
+      if (matRes.error) console.error("Error al traer materiales:", matRes.error);
+      else setMaterials(matRes.data || []);
 
-    if (matRes.error) console.error("Error al traer materiales:", matRes.error);
-    else setMaterials(matRes.data || []);
+      if (toolsRes.error) console.error("Error al traer herramientas:", toolsRes.error);
+      else setTools(toolsRes.data || []);
 
-    if (toolsRes.error) console.error("Error al traer herramientas:", toolsRes.error);
-    else setTools(toolsRes.data || []);
+    } catch (err) {
+      console.error("Error al cargar datos:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  } catch (err) {
-    console.error("Error al cargar datos:", err);
-  } finally {
-    setLoading(false);
-  }
-};
-
-
+  useEffect(() => {
     fetchData();
   }, [documentId]);
+
+  const handleDeleteM = async (id: number) => {
+    const { error } = await supabase.from("inventory").delete().eq("id", id);
+    if (error) {
+      console.error("Error al eliminar el material:", error);
+    } else {
+      setMaterials((prev) => prev.filter((m) => m.id !== id));
+    }
+  };
+
+  const handleEditClick = (material: Inventory) => {
+    setSelectedMaterial(material);
+    setIsSheetOpen(true);
+  };
+
+  const handleClose = () => {
+    setIsSheetOpen(false);
+    setSelectedMaterial(null);
+    fetchData();
+  };
+
+  const MaterialForm = (
+    <div className="p-4 overflow-y-auto max-h-[80vh]">
+      {selectedMaterial && <EditMaterialForm material={selectedMaterial} onClose={handleClose} />}
+    </div>
+  );
 
   if (loading) return <p className="p-6 text-center">Cargando...</p>;
   if (!department) return <p className="p-6 text-center text-red-500">Departamento no encontrado.</p>;
@@ -85,10 +125,23 @@ export default function DepartmentDetailPage() {
             ) : (
               materials.map((mat) => (
                 <Card key={mat.id} className="p-4 shadow-sm border">
-                  <h2 className="text-lg font-semibold">{mat.name}</h2>
-                  <p className="text-sm text-gray-500">
-                    {mat.quantity} {mat.unit}
-                  </p>
+                  <div className="flex flex-col-2 justify-between">
+                    <div>
+                      <h2 className="text-lg font-semibold">{mat.name}</h2>
+                      <p className="text-sm text-gray-500">
+                        {mat.quantity} {mat.unit}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="default" onClick={() => handleEditClick(mat)}>
+                        Editar
+                        <SquarePen />
+                      </Button>
+                      <Button size="sm" variant="destructive" onClick={() => handleDeleteM(mat.id)}>
+                        <Trash2 />
+                      </Button>
+                    </div>
+                  </div>
                 </Card>
               ))
             )}
@@ -108,6 +161,25 @@ export default function DepartmentDetailPage() {
             )}
           </TabsContent>
         </Tabs>
+        {isDesktop ? (
+          <Dialog open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Editar Material</DialogTitle>
+              </DialogHeader>
+              {MaterialForm}
+            </DialogContent>
+          </Dialog>
+        ) : (
+          <Drawer open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+            <DrawerContent>
+              <DrawerHeader>
+                <DrawerTitle>Editar Material</DrawerTitle>
+              </DrawerHeader>
+              {MaterialForm}
+            </DrawerContent>
+          </Drawer>
+        )}
       </div>
     </Layout>
   );
