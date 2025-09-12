@@ -29,7 +29,7 @@ export default function Login() {
       setError(error.message)
     } else {
       console.log("Sesion Iniciada:", data);
-      window.location.href ="/app/dashboard";
+      window.location.href ="/app/home";
     }
   };
 
