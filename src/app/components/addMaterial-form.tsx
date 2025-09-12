@@ -20,8 +20,8 @@ const schema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
   quantity: z.number().min(1, 'La cantidad es requerida'),
   unit: z.enum(Medidas),
-  departments: z.string().min(1, 'El departamento es requerido'),
-  movement_type: z.enum(MovimientosM),
+  department_id: z.string().min(1, 'El departamento es requerido'),
+  movementType: z.enum(MovimientosM),
   description: z.string().optional(),
 });
 
@@ -49,8 +49,8 @@ function AddMaterialForm() {
       name: '',
       quantity: 0,
       unit: 'Select',
-      departments: '',
-      movement_type: 'entry',
+      department_id: '',
+      movementType: 'entry',
       description: '',
     },
   });
@@ -65,7 +65,7 @@ function AddMaterialForm() {
         name: values.name,
         quantity: values.quantity,
         description: values.description,
-        department: values.departments,
+        department_id: values.department_id,
         unit: values.unit,
       },
      ])
@@ -78,7 +78,7 @@ function AddMaterialForm() {
     const { error: actError } = await supabase.from("activity").insert([
       {
         name: values.name,
-        movementType: values.movement_type,
+        movementType: values.movementType,
         created_by: user?.id,
         created_at: new Date(),
       },
@@ -108,7 +108,7 @@ function AddMaterialForm() {
       </select>
 
       <Label htmlFor="departments">Departamento</Label>
-      <select id="departments" {...form.register('departments')} className="border rounded p-2">
+      <select id="departments" {...form.register('department_id')} className="border rounded p-2">
         <option value="">Selecciona un departamento</option>
         {(departments ?? []).map((dep) => (
           <option key={dep.id} value={dep.id.toString()}>
@@ -120,7 +120,7 @@ function AddMaterialForm() {
       <Label htmlFor="description">Descripción (opcional)</Label>
       <Input id="description" {...form.register('description')} placeholder="Descripción" />
 
-      <Button type="submit">Agregar Material</Button>
+      <Button type="submit" >Agregar Material</Button>
     </form>
   );
 }
