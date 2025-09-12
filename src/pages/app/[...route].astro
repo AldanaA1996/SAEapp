@@ -1,0 +1,49 @@
+---
+import type { GetStaticPaths } from "astro";
+import "src/styles/global.css"
+//component imports
+import App from "@/app/App"
+import { Layout } from "@/components";
+import LayoutApp from "@/components/Layout/LayoutApp.astro";
+// import { undefined } from "astro:schema";
+import LayoutPage from "@/components/Layout/LayoutPage.astro";
+import type { id } from "zod/v4/locales";
+
+const title = "SAE Depo"
+
+export function getStaticPaths() {
+    const departments = [
+        {id: "1" }, //"limpieza"
+        {id: "2" }, // "jardineria"
+        {id: "3" }, // "plomeria"
+        {id: "4" }, //"pintura"
+        {id: "5" }, //"sonido"
+        {id: "6" }, //"terminaciones"
+        {id: "7" }, //"albañileria"
+        {id: "8" }, //"electricidad"
+        {id: "9" }, //"herreria"
+        {id: "10" },//cocina
+        {id: "11" }, //escuelas
+        {id: "12" }, //auditorio
+        {id: "13" }, //plataforma
+        {id: "14" }, //capacitaciones
+
+    ];
+    return [ { params: { route: undefined } },
+    { params: { route: "login" } },
+    { params: { route: "dashboard" } },
+    { params: { route: "addTool"} },
+    { params: { route: "departments" } },
+    ...departments.map((d) => ({
+      params: { route: `departments/${d.id}` },
+    })),
+];
+}
+---
+
+<script></script>
+<Layout title={title} >
+    <LayoutPage>
+        <App client:only="react" />
+    </LayoutPage>
+</Layout>

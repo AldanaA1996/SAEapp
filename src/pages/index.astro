@@ -1,16 +1,51 @@
 ---
+import Layout  from "../components/Layout/Layout.astro";
+import LayoutPage from "../components/Layout/LayoutPage.astro";
+import { useAuthenticationStore } from "@/app/store/authentication";
+import "../styles/global.css"
+
 
 ---
+<script is:inline>
+	import { useEffect } from "react";
+	import { useAuthenticationStore } from "@/app/store/authentication";
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+	const token = useAuthenticationStore.getState().token;
+
+	useEffect(() => {
+		if (token) {
+			window.location.href= "/app"; 
+		}
+	}, []);
+
+	const getThemePreference = () => {
+		if (typeof localStorage !== 'undefined' && localStorage.getItem('theme')) {
+			return localStorage.getItem('theme');
+		}
+		return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+	};
+	const isDark = getThemePreference() === 'dark';
+	document.documentElement.classList[isDark ? 'add' : 'remove']('dark');
+ 
+	if (typeof localStorage !== 'undefined') {
+		const observer = new MutationObserver(() => {
+			const isDark = document.documentElement.classList.contains('dark');
+			localStorage.setItem('theme', isDark ? 'dark' : 'light');
+		});
+		observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+	}
+</script>
+
+<Layout title="SAE Depo">
+  <LayoutPage>
+    <div class="flex flex-col items-center justify-center h-screen text-center">
+      <img src="/images/logo.svg" alt="Logo" class="w-40 h-35 mb-6" />
+      <h1 class="text-4xl font-bold mb-4">Bienvenido a SAE DEPO</h1>
+      <p class="text-lg mb-6">Gestión de stock simple y eficiente</p>
+
+      <a href="/login" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+        Entrar
+      </a>
+    </div>
+  </LayoutPage>
+</Layout>
