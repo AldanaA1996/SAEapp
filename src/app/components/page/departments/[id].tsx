@@ -4,6 +4,8 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/app/lib/supabaseClient";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/app/components/ui/tabs";
 import { Card } from "@/app/components/ui/card";
+import { Button } from "../../ui/button";
+import { Trash2, SquarePen } from "lucide-react";
 
 type Inventory = {
   id: number;
@@ -85,10 +87,23 @@ export default function DepartmentDetailPage() {
             ) : (
               materials.map((mat) => (
                 <Card key={mat.id} className="p-4 shadow-sm border">
+                  <div className="flex flex-col-2 justify-between">
+                  <div>
                   <h2 className="text-lg font-semibold">{mat.name}</h2>
                   <p className="text-sm text-gray-500">
                     {mat.quantity} {mat.unit}
                   </p>
+                  </div>
+                  <div> 
+                    <Button size="sm" variant="default" >
+                      <SquarePen />
+                      </Button>
+                    <Button size="sm" variant= "destructive">
+                      <Trash2 />
+                    </Button>
+                   
+                  </div>
+                  </div>
                 </Card>
               ))
             )}
