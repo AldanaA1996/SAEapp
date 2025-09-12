@@ -1,6 +1,8 @@
 
 import Layout from "@/app/components/layout";
 import AddMaterialForm from "@/app/components/addMaterial-form";
+import EgressMaterialForm from "@/app/components/egressMaterial-form";
+
 
 export function Dashboard() {
   return (
@@ -15,6 +17,7 @@ export function Dashboard() {
         <div className=" bg-white p-6 rounded-lg shadow-md mb-4">
           <h3 className="text-xl font-semibold p-2">Agregar Material</h3>
           <AddMaterialForm />
+          <EgressMaterialForm />
         </div>
 
         <div className="flex-end flex-1 text-end justify-end bg-white p-6 rounded-lg shadow-md">
