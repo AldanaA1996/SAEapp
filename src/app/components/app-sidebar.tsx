@@ -16,7 +16,7 @@ import {
 const items = [
   {
     title: "Home",
-    url: "#",
+    url: "/app/home",
     icon: Home,
   },
   {
@@ -34,16 +34,16 @@ const items = [
     url: "/app/departments",
     icon: DoorOpen,
   },
-  {
-    title: "Movimientos",
-    url: "#",
-    icon: ArrowUpDown,
-  },
-  {
-    title: "Voluntarios",
-    url: "#",
-    icon: UsersRound,
-  },
+  // {
+  //   title: "Movimientos",
+  //   url: "#",
+  //   icon: ArrowUpDown,
+  // },
+  // {
+  //   title: "Voluntarios",
+  //   url: "#",
+  //   icon: UsersRound,
+  // },
   
 ]
 

@@ -1,5 +1,6 @@
 import Login from "@/app/components/page/Login";
 import Dashboard from "@/app/components/page/Dashboard";
+import Home from "./components/page/Home";
 import DepartmentsPage from "@/app/components/page/departments/DepartmentsPage";
 import DepartmentDetailPage from "@/app/components/page/departments/[id]";
 import ToolsPage from "@/app/components/page/Tools";
@@ -39,7 +40,14 @@ export default function App() {
               
 
                 {/* Protected route for the dashboard page */}
-                
+                 <Route
+                    path="/app/home"
+                    element={
+                        <ProtectedRoute>
+                            <Home />
+                        </ProtectedRoute>
+                    }
+                />
                 <Route
                     path="/app/dashboard"
                     element={
