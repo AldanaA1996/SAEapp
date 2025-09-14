@@ -1,4 +1,4 @@
-import { SidebarProvider, SidebarTrigger } from "@/app/components/ui/sidebar";
+import { Sidebar, SidebarProvider, SidebarTrigger, SidebarInset } from "@/app/components/ui/sidebar";
 import { AppSidebar } from "@/app/components/app-sidebar";
 import { ModeToggle } from "@/app/components/Modetoggle";
 
@@ -7,7 +7,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     <SidebarProvider>
         <AppSidebar />         
 
-        <main className="flex flex-1 p-4">{children}</main>
+        <SidebarInset>{children}</SidebarInset>
        
       <SidebarTrigger>Menu</SidebarTrigger>
       
