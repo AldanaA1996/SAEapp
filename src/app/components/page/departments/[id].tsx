@@ -134,7 +134,6 @@ export default function DepartmentDetailPage() {
                     </div>
                     <div className="flex gap-2">
                       <Button size="sm" variant="default" onClick={() => handleEditClick(mat)}>
-                        Editar
                         <SquarePen />
                       </Button>
                       <Button size="sm" variant="destructive" onClick={() => handleDeleteM(mat.id)}>
