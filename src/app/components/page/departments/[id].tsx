@@ -8,6 +8,7 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/app/componen
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
 import { Button } from "../../ui/button";
 import EditMaterialForm from "../../editMaterial";
+import EditToolForm from "../../editTool";
 import { useMediaQuery } from "@/app/hooks/use-media-query";
 import { Trash2, SquarePen } from "lucide-react";
 
@@ -26,11 +27,16 @@ type Inventory = {
   description?: string;
 };
 
-type Tool = {
+type Tools = {
   id: number;
   name: string;
   description?: string;
   amount: number;
+  manufactur?: string;
+  barcode?: number;
+  hasQrCode?: boolean;
+  purchase_date?: string | null;
+  warrantyExpirationDate?: string | null;
 };
 
 type Department = {
@@ -42,10 +48,16 @@ export default function DepartmentDetailPage() {
   const { documentId } = useParams<{ documentId: string }>();
   const [department, setDepartment] = useState<Department | null>(null);
   const [materials, setMaterials] = useState<Inventory[]>([]);
-  const [tools, setTools] = useState<Tool[]>([]);
+  const [tools, setTools] = useState<Tools[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMaterial, setSelectedMaterial] = useState<Inventory | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [selectedTool, setSelectedTool] = useState<Tools | null>(null);
+  const [editType, setEditType] = useState<"material" | "tools" | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<
+    { type: "material" | "tools"; id: number; name: string } | null
+  >(null);
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const fetchData = async () => {
@@ -57,7 +69,8 @@ export default function DepartmentDetailPage() {
       const [depRes, matRes, toolsRes] = await Promise.all([
         supabase.from("departments").select("*").eq("id", departmentId).single(),
         supabase.from("inventory").select("*").eq("department_id", departmentId),
-        supabase.from("tools").select("id, name, description, amount").eq("department_id", departmentId),
+        // Select all columns to avoid breaking due to column name mismatches (e.g., hasQrCode vs hasQRcode)
+        supabase.from("tools").select("*").eq("department_id", departmentId),
       ]);
 
       if (depRes.error) throw depRes.error;
@@ -89,20 +102,70 @@ export default function DepartmentDetailPage() {
     }
   };
 
+  const handleDeleteT = async (id: number) => {
+    const { error } = await supabase.from("tools").delete().eq("id", id);
+    if (error) {
+      console.error("Error al eliminar la herramienta:", error);
+    } else {
+      setTools((prev) => prev.filter((t) => t.id !== id));
+    }
+  };
+
+  const requestDeleteMaterial = (material: Inventory) => {
+    setPendingDelete({ type: "material", id: material.id as number, name: material.name });
+    setConfirmOpen(true);
+  };
+
+  const requestDeleteTool = (tools: Tools) => {
+    setPendingDelete({ type: "tools", id: tools.id, name: tools.name });
+    setConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    try {
+      if (pendingDelete.type === "material") {
+        await handleDeleteM(pendingDelete.id);
+      } else {
+        await handleDeleteT(pendingDelete.id);
+      }
+    } finally {
+      setConfirmOpen(false);
+      setPendingDelete(null);
+    }
+  };
+
   const handleEditClick = (material: Inventory) => {
     setSelectedMaterial(material);
+    setEditType("material");
+    setIsSheetOpen(true);
+  };
+
+  const handleEditToolClick = (tools: Tools) => {
+    setSelectedTool(tools);
+    setEditType("tools");
     setIsSheetOpen(true);
   };
 
   const handleClose = () => {
     setIsSheetOpen(false);
     setSelectedMaterial(null);
+    setSelectedTool(null);
+    setEditType(null);
     fetchData();
   };
 
   const MaterialForm = (
     <div className="p-4 overflow-y-auto max-h-[80vh]">
       {selectedMaterial && <EditMaterialForm material={selectedMaterial} onClose={handleClose} />}
+    </div>
+  );
+
+  const ToolForm = (
+    <div className="p-4 overflow-y-auto max-h-[80vh]">
+      {selectedTool && (
+        <EditToolForm tools={selectedTool} onClose={handleClose} />
+      )}
     </div>
   );
 
@@ -124,7 +187,7 @@ export default function DepartmentDetailPage() {
               <p className="text-center text-gray-500">No hay materiales registrados.</p>
             ) : (
               materials.map((mat) => (
-                <Card key={mat.id} className="p-4 shadow-sm border">
+                <Card key={mat.id} className="p-4 shadow-sm border max-h-48 overflow-y-auto">
                   <div className="flex flex-col-2 justify-between">
                     <div>
                       <h2 className="text-lg font-semibold">{mat.name}</h2>
@@ -136,7 +199,7 @@ export default function DepartmentDetailPage() {
                       <Button size="sm" variant="default" onClick={() => handleEditClick(mat)}>
                         <SquarePen />
                       </Button>
-                      <Button size="sm" variant="destructive" onClick={() => handleDeleteM(mat.id)}>
+                      <Button size="sm" variant="destructive" onClick={() => requestDeleteMaterial(mat)}>
                         <Trash2 />
                       </Button>
                     </div>
@@ -150,11 +213,25 @@ export default function DepartmentDetailPage() {
             {tools.length === 0 ? (
               <p className="text-center text-gray-500">No hay herramientas registradas.</p>
             ) : (
-              tools.map((tool) => (
-                <Card key={tool.id} className="p-4 shadow-sm border">
-                  <h2 className="text-lg font-semibold">{tool.name}</h2>
-                  {tool.description && <p className="text-sm text-gray-500">{tool.description}</p>}
-                  <p className="text-sm text-gray-500">{tool.amount} disponibles</p>
+              tools.map((tools) => (
+                <Card key={tools.id} className="p-4 shadow-sm border max-h-48 overflow-y-auto">
+                  <div className="flex flex-col-2 justify-between">
+                    <div>
+                      <h2 className="text-lg font-semibold">{tools.name}</h2>
+                      {tools.description && (
+                        <p className="text-sm text-gray-500">{tools.description}</p>
+                      )}
+                      <p className="text-sm text-gray-500">{tools.amount} disponibles</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="default" onClick={() => handleEditToolClick(tools)}>
+                        <SquarePen />
+                      </Button>
+                      <Button size="sm" variant="destructive" onClick={() => requestDeleteTool(tools)}>
+                        <Trash2 />
+                      </Button>
+                    </div>
+                  </div>
                 </Card>
               ))
             )}
@@ -164,21 +241,50 @@ export default function DepartmentDetailPage() {
           <Dialog open={isSheetOpen} onOpenChange={setIsSheetOpen}>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Editar Material</DialogTitle>
+                <DialogTitle>
+                  {editType === "tools" ? "Editar Herramienta" : "Editar Material"}
+                </DialogTitle>
               </DialogHeader>
-              {MaterialForm}
+              {editType === "tools" ? ToolForm : MaterialForm}
             </DialogContent>
           </Dialog>
         ) : (
           <Drawer open={isSheetOpen} onOpenChange={setIsSheetOpen}>
             <DrawerContent>
               <DrawerHeader>
-                <DrawerTitle>Editar Material</DrawerTitle>
+                <DrawerTitle>
+                  {editType === "tools" ? "Editar Herramienta" : "Editar Material"}
+                </DrawerTitle>
               </DrawerHeader>
-              {MaterialForm}
+              {editType === "tools" ? ToolForm : MaterialForm}
             </DrawerContent>
           </Drawer>
         )}
+
+        {/* Confirmación de eliminación */}
+        <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirmar eliminación</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <p>
+                ¿Estás seguro de eliminar {pendingDelete?.type === "tools" ? "la herramienta" : "el material"}
+                {" "}
+                <span className="font-semibold">{pendingDelete?.name}</span>?
+                Esta acción no se puede deshacer.
+              </p>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={() => { setConfirmOpen(false); setPendingDelete(null); }}>
+                  Cancelar
+                </Button>
+                <Button variant="destructive" onClick={confirmDelete}>
+                  Eliminar
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );

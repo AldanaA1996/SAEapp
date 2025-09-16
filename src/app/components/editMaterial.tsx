@@ -1,4 +1,4 @@
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/app/components/ui/button';
@@ -87,6 +87,12 @@ function EditMaterialForm({ material, onClose }: EditMaterialFormProps) {
       <Label htmlFor="quantity">Cantidad</Label>
       <Input id="quantity" type="number" {...form.register('quantity', { valueAsNumber: true })} />
 
+      <Label htmlFor="unit">Unidad</Label>
+      <select id="unit" {...form.register('unit')} className="border rounded p-2">
+        {Medidas.map((medida) => (
+          <option key={medida} value={medida}>{medida}</option>
+        ))}
+      </select>
       <Label htmlFor="weight">Peso</Label>
       <Input id="weight" type="number" {...form.register('weight', { valueAsNumber: true })} />
 
@@ -105,20 +111,37 @@ function EditMaterialForm({ material, onClose }: EditMaterialFormProps) {
       <Label htmlFor="barcode">Código de Barras</Label>
       <Input id="barcode" {...form.register('barcode')} />
 
-      <div className="flex items-center gap-2">
-        <Input id="hasQRcode" type="checkbox" {...form.register('hasQrCode')} />
-        <Label htmlFor="hasQRcode">Tiene código QR</Label>
+      
+      <div className="flex items-center gap-3">
+       <Label>Tiene código QR</Label>
+        <Controller
+          name="hasQrCode"
+          control={form.control}
+          render={({ field }) => (
+            <button
+              type="button"
+              role="switch"
+              aria-checked={!!field.value}
+              onClick={() => field.onChange(!field.value)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                field.value ? 'bg-green-500' : 'bg-gray-300'
+              }`}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                  field.value ? 'translate-x-5' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          )}
+        />
+        
       </div>
 
       <Label htmlFor="description">Descripción</Label>
       <Input id="description" {...form.register('description')} />
 
-      <Label htmlFor="unit">Unidad</Label>
-      <select id="unit" {...form.register('unit')} className="border rounded p-2">
-        {Medidas.map((medida) => (
-          <option key={medida} value={medida}>{medida}</option>
-        ))}
-      </select>
+      
 
       <Button type="submit">Guardar Cambios</Button>
     </form>
