@@ -8,10 +8,6 @@ import { Label } from '@/app/components/ui/label';
 import { useAuthenticationStore } from '../store/authentication';
 import { supabase } from '../lib/supabaseClient';
 
-const MovimientosM = [
-  "entry", "exit"
-] as const;
-
 const Medidas = [ "Select",
   "Kg", "Mts", "Cms", "Caja", "Unidad", "Paquete", "Litro", "Gramo", "Pieza", "Bolsa", "Otro"
 ] as const;
@@ -20,8 +16,6 @@ const schema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
   quantity: z.number().min(1, 'La cantidad es requerida'),
   unit: z.enum(Medidas),
-  department_id: z.string().min(1, 'El departamento es requerido'),
-  movementType: z.enum(MovimientosM),
   description: z.string().optional(),
   barcode: z.string().optional(),
 });
@@ -31,21 +25,21 @@ interface AddMaterialFormProps {
 }
 
 function AddMaterialForm({ scannedBarcode }: AddMaterialFormProps) {
-  const [departments, setDepartments] = useState<any[]>();
+  const [materials, setMaterials] = useState<Array<{ id: number; name: string; quantity: number; unit: string | null }>>([]);
   const user = useAuthenticationStore((state) => state.user);
 
   useEffect(() => {
-    const fetchDepartments = async ()=> {
-      const {data, error } = await supabase
-      .from("departments")
-      .select("id, name");
+    const fetchInventory = async ()=> {
+      const { data, error } = await supabase
+        .from('inventory')
+        .select('id,name,quantity,unit');
       if (error) {
-        console.error("Error al cargar departamentos:", error );
+        console.error('Error al cargar inventario:', error);
       } else {
-        setDepartments(data || []);
+        setMaterials((data as any) || []);
       }
     };
-    fetchDepartments();
+    fetchInventory();
   }, []);
 
   const form = useForm<z.infer<typeof schema>>({
@@ -54,8 +48,6 @@ function AddMaterialForm({ scannedBarcode }: AddMaterialFormProps) {
       name: '',
       quantity: 0,
       unit: 'Select',
-      department_id: '',
-      movementType: 'entry',
       description: '',
       barcode: '',
     },
@@ -70,77 +62,102 @@ function AddMaterialForm({ scannedBarcode }: AddMaterialFormProps) {
 
  const onSubmit = async (values: z.infer<typeof schema>) => {
   try {
-    //insertar material
-    const {data: material, error: matError} = await supabase
-     .from("inventory")
-     .insert([
-      {
-        name: values.name,
-        quantity: values.quantity,
-        description: values.description,
-        department_id: values.department_id,
-        unit: values.unit,
-        barcode: values.barcode,
-        created_at: new Date().toISOString(),
-      },
-     ])
-     .select()
-     .single();
+    const unitValue = values.unit && values.unit !== 'Select' ? values.unit : null;
+    // Buscar si existe por nombre (globalmente)
+    const existing = materials.find(m => m.name.toLowerCase() === values.name.trim().toLowerCase());
 
-    if (matError) throw matError;
+    if (existing) {
+      // actualizar sumando cantidad
+      const newQty = (existing.quantity || 0) + values.quantity;
+      const { error: upErr } = await supabase
+        .from('inventory')
+        .update({
+          quantity: newQty,
+          unit: unitValue ?? existing.unit,
+          description: values.description ?? null,
+          barcode: values.barcode ?? null,
+        })
+        .eq('id', existing.id);
+      if (upErr) throw upErr;
 
-    //insertar mov en activity
-    const horaActual = new Date().toLocaleTimeString('en-GB')
-    const { error: actError } = await supabase.from("activity").insert([
-      {
-        name: material.id,
-        movementType: values.movementType,
-        created_by: user?.id,
-        created_at: horaActual,
-        created_date: new Date().toISOString(),
-      },
-    ]);
+      // activity con delta
+      const horaActual = new Date().toLocaleTimeString('en-GB');
+      await supabase.from('activity').insert([
+        {
+          name: existing.id,
+          movementType: 'entry',
+          created_by: user?.id ?? null,
+          created_at: horaActual,
+          created_date: new Date().toISOString(),
+          quantity: values.quantity,
+        },
+      ]);
+    } else {
+      // insertar nuevo
+      const { data: inserted, error: insErr } = await supabase
+        .from('inventory')
+        .insert([
+          {
+            name: values.name.trim(),
+            quantity: values.quantity,
+            unit: unitValue,
+            department_id: null,
+            description: values.description ?? null,
+            barcode: values.barcode ?? null,
+            created_at: new Date().toISOString(),
+          },
+        ])
+        .select()
+        .single();
+      if (insErr) throw insErr;
 
-    if (actError) throw actError;
+      const horaActual = new Date().toLocaleTimeString('en-GB');
+      await supabase.from('activity').insert([
+        {
+          name: (inserted as any)?.id,
+          movementType: 'entry',
+          created_by: user?.id ?? null,
+          created_at: horaActual,
+          created_date: new Date().toISOString(),
+          quantity: values.quantity,
+        },
+      ]);
+    }
+
+    // refrescar cache local
+    const { data: mats } = await supabase.from('inventory').select('id,name,quantity,unit');
+    setMaterials((mats as any) || []);
 
     form.reset();
 
-    console.log("MATERIAL Y ACTIVITY CREADOS");
+    console.log('Ingreso registrado');
   } catch (err) {
     console.error("ERROR AL INTENTAR CREAR:", err);
   }
  };
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
-      <Label htmlFor="name">Nombre del Material</Label>
-      <Input id="name" {...form.register('name')} placeholder="Nombre" />
+    <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4 w-1/2">
+      <Label htmlFor="name" className="font-semibold pt-2 px-4">Nombre del Material</Label>
+      <div className="flex flex-col md:flex-row">
+        <Input id="name" {...form.register('name')} placeholder="Ingrese el nombre del material" />
+      </div>
 
-      <Label htmlFor="quantity">Cantidad</Label>
+      <Label htmlFor="quantity" className="font-semibold px-4">Cantidad</Label>
       <Input id="quantity" type="number" {...form.register('quantity', { valueAsNumber: true })} placeholder="Cantidad" />
 
-      <Label htmlFor="barcode">Código de barras</Label>
-      <Input id="barcode" {...form.register('barcode')} placeholder="Escanéalo o escríbelo" />
-
-      <Label htmlFor="unit">Unidad</Label>
+      <Label htmlFor="unit" className="font-semibold px-4">Unidad</Label>
       <select id="unit" {...form.register('unit')} className="border rounded p-2">
-        <option value="">Selecciona la unidad</option>
+        <option value="Select">Selecciona la unidad</option>
         {Medidas.map((medida) => (
           <option key={medida} value={medida}>{medida}</option>
         ))}
       </select>
-
-      <Label htmlFor="departments">Departamento</Label>
-      <select id="departments" {...form.register('department_id')} className="border rounded p-2">
-        <option value="">Selecciona un departamento</option>
-        {(departments ?? []).map((dep) => (
-          <option key={dep.id} value={dep.id.toString()}>
-            {dep.name}
-          </option>
-        ))}
-      </select>
-
-      <Label htmlFor="description">Descripción (opcional)</Label>
+      
+      <Label htmlFor="barcode" className="font-semibold px-4">Código de barras</Label>
+      <Input id="barcode" {...form.register('barcode')} placeholder="Escanéalo o escríbelo" />
+     
+      <Label htmlFor="description" className="font-semibold px-4">Descripción (opcional)</Label>
       <Input id="description" {...form.register('description')} placeholder="Descripción" />
 
       <Button type="submit" >Agregar Material</Button>

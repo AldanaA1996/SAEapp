@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/app/lib/supabaseClient";
 import { Card } from "@/app/components/ui/card";
 import { Input } from "@/app/components/ui/input";
+import { Button } from "@/app/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
+import { Trash2 } from "lucide-react";
 
 type MovementRecord = Record<string, any> & {
   id?: number | string;
@@ -31,6 +34,8 @@ export default function MovementsView({ tableName = "activity" }: MovementsViewP
   // Delete mode
   const [deleteMode, setDeleteMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmIds, setConfirmIds] = useState<string[]>([]);
 
   useEffect(() => {
     const load = async () => {
@@ -180,19 +185,33 @@ export default function MovementsView({ tableName = "activity" }: MovementsViewP
 
   const clearSelection = () => setSelectedIds(new Set());
 
-  const deleteSelected = async () => {
+  const requestDeleteSelected = () => {
     if (!selectedIds.size) return;
+    setConfirmIds(Array.from(selectedIds));
+    setConfirmOpen(true);
+  };
+
+  const requestDeleteSingle = (id?: number | string) => {
+    if (id == null) return;
+    setConfirmIds([String(id)]);
+    setConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!confirmIds.length) return;
     try {
-      const ids = Array.from(selectedIds).map((x) => (isNaN(Number(x)) ? x : Number(x)));
-      const { error } = await supabase.from(tableName).delete().in("id", ids as any[]);
+      const idsForDb = confirmIds.map((x) => (isNaN(Number(x)) ? x : Number(x)));
+      const { error } = await supabase.from(tableName).delete().in("id", idsForDb as any[]);
       if (error) throw error;
-      // Remove locally
-      const setIds = new Set(selectedIds);
+      const setIds = new Set(confirmIds);
       setData((prev) => prev.filter((r) => !setIds.has(String(r.id))));
       clearSelection();
       setDeleteMode(false);
     } catch (err) {
       console.error("Error al eliminar movimientos:", err);
+    } finally {
+      setConfirmOpen(false);
+      setConfirmIds([]);
     }
   };
 
@@ -207,14 +226,14 @@ export default function MovementsView({ tableName = "activity" }: MovementsViewP
     <div className="space-y-3 p-2">
       {/* Filters bar */}
       <div className="sticky top-0 z-10 bg-white/70 backdrop-blur border rounded-md p-3 flex flex-wrap items-end gap-3">
-        <div>
+        {/* <div>
           <label className="block text-xs text-gray-600 mb-1">Desde</label>
           <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="w-44" />
         </div>
         <div>
           <label className="block text-xs text-gray-600 mb-1">Hasta</label>
           <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-44" />
-        </div>
+        </div> */}
         <div>
           <label className="block text-xs text-gray-600 mb-1">Tipo</label>
           <select className="border rounded h-9 px-2" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
@@ -246,7 +265,7 @@ export default function MovementsView({ tableName = "activity" }: MovementsViewP
                 type="button"
                 className="text-xs border rounded px-3 h-9 bg-red-600 text-white hover:bg-red-500 disabled:opacity-50"
                 disabled={!selectedIds.size}
-                onClick={deleteSelected}
+                onClick={requestDeleteSelected}
               >
                 Eliminar seleccionados ({selectedIds.size})
               </button>
@@ -290,6 +309,22 @@ export default function MovementsView({ tableName = "activity" }: MovementsViewP
         const canSelect = (m as any).id != null;
         const realId = (m as any).id as string | number | undefined;
         const checked = realId != null ? selectedIds.has(String(realId)) : false;
+        // Quantity chip with sign and color by movement type
+        const qtyVal = (m as any).quantity as number | undefined;
+        const qtyChip = (() => {
+          if (qtyVal == null) return null;
+          const mt = String(movementType || "").toLowerCase();
+          const isEntry = mt === "entry";
+          const isExit = mt === "exit";
+          const sign = isEntry ? "+" : isExit ? "-" : "";
+          const color = isEntry ? "bg-green-50 text-green-700" : isExit ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700";
+          return (
+            <span className={`text-xs rounded px-2 py-0.5 ${color}`}>
+              {sign}{qtyVal}
+            </span>
+          );
+        })();
+
         return (
           <Card key={id} className="p-4 shadow-sm border">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -298,19 +333,7 @@ export default function MovementsView({ tableName = "activity" }: MovementsViewP
                   <span className="font-semibold">
                     {material || tool || m.item_name || "Movimiento"}
                   </span>
-                  {/* <span>
-                    {tool?.amount || material?.amount || ""}
-                  </span> */}
-                  {movementType && (
-                    <span className="text-xs rounded bg-gray-100 px-2 py-0.5 text-gray-700">
-                      {movementType}
-                    </span>
-                  )}
-                  {(m as any).quantity != null && (
-                    <span className="text-xs rounded bg-blue-50 px-2 py-0.5 text-blue-700">
-                      Qty: {(m as any).quantity}
-                    </span>
-                  )}
+                  {qtyChip}
                 </div>
                 <div className="text-xs text-gray-500 mt-1 flex flex-wrap gap-3">
                   {when && <span>{formatDateTime(when)}</span>}
@@ -321,6 +344,14 @@ export default function MovementsView({ tableName = "activity" }: MovementsViewP
                   )}
                 </div>
               </div>
+              {/* Single delete button */}
+              {!deleteMode && (
+                <div className="ml-auto pl-2">
+                  <Button variant="outline" size="sm" onClick={() => requestDeleteSingle(realId)} disabled={!canSelect}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
               {deleteMode && (
                 <div className="ml-auto pl-2">
                   <label className={`flex items-center gap-2 ${!canSelect ? 'opacity-40 cursor-not-allowed' : ''}`}>
@@ -338,6 +369,29 @@ export default function MovementsView({ tableName = "activity" }: MovementsViewP
           </Card>
         );
       })}
+      {/* Confirm deletion dialog */}
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar eliminación</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm">
+              {confirmIds.length > 1
+                ? `Vas a eliminar ${confirmIds.length} movimientos. Esta acción no se puede deshacer.`
+                : `Vas a eliminar 1 movimiento. Esta acción no se puede deshacer.`}
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => { setConfirmOpen(false); setConfirmIds([]); }}>
+                Cancelar
+              </Button>
+              <Button variant="destructive" onClick={confirmDelete}>
+                Eliminar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

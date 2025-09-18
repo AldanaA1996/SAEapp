@@ -24,16 +24,16 @@ const items = [
     url: "/app/inventario",
     icon: Package,
   },
-  {
-    title: "Herramientas",
-    url: "/app/addTool",
-    icon: Drill,
-  },
-  {
-    title: "Departamentos",
-    url: "/app/departments",
-    icon: DoorOpen,
-  },
+  // {
+  //   title: "Herramientas",
+  //   url: "/app/addTool",
+  //   icon: Drill,
+  // },
+  // {
+  //   title: "Departamentos",
+  //   url: "/app/departments",
+  //   icon: DoorOpen,
+  // },
   {
     title: "Buscar",
     url: "/app/search",
@@ -44,11 +44,11 @@ const items = [
     url: "/app/movements",
     icon: ArrowUpDown,
   },
-  {
-    title: "Voluntarios",
-    url: "#",
-    icon: UsersRound,
-  },
+  // {
+  //   title: "Voluntarios",
+  //   url: "#",
+  //   icon: UsersRound,
+  // },
   
 ]
 

@@ -10,27 +10,27 @@ import { z } from "zod";
 const title = "SAE Depo"
 
 export function getStaticPaths() {
-    const departments = [
-        {id: "1" }, //"limpieza"
-        {id: "2" }, // "jardineria"
-        {id: "3" }, // "plomeria"
-        {id: "4" }, //"pintura"
-        {id: "5" }, //"sonido"
-        {id: "6" }, //"terminaciones"
-        {id: "7" }, //"albañileria"
-        {id: "8" }, //"electricidad"
-        {id: "9" }, //"herreria"
-        {id: "10" },//cocina
-        {id: "11" }, //escuelas
-        {id: "12" }, //auditorio
-        {id: "13" }, //plataforma
-        {id: "14" }, //capacitaciones
-        {id: "15" }, 
-        {id: "16" }, 
-        {id: "17" }, 
-        {id: "18"}
+    // const departments = [
+    //     {id: "1" }, //"limpieza"
+    //     {id: "2" }, // "jardineria"
+    //     {id: "3" }, // "plomeria"
+    //     {id: "4" }, //"pintura"
+    //     {id: "5" }, //"sonido"
+    //     {id: "6" }, //"terminaciones"
+    //     {id: "7" }, //"albañileria"
+    //     {id: "8" }, //"electricidad"
+    //     {id: "9" }, //"herreria"
+    //     {id: "10" },//cocina
+    //     {id: "11" }, //escuelas
+    //     {id: "12" }, //auditorio
+    //     {id: "13" }, //plataforma
+    //     {id: "14" }, //capacitaciones
+    //     {id: "15" }, 
+    //     {id: "16" }, 
+    //     {id: "17" }, 
+    //     {id: "18"}
 
-    ];
+    // ];
     return [ { params: { route: undefined } },
     { params: { route: "login" } },
     { params: { route: "home" }},
@@ -38,10 +38,10 @@ export function getStaticPaths() {
     { params: { route: "addTool"} },
     { params: { route: "search" } },
     { params: { route: "movements" } },
-    { params: { route: "departments" } },
-    ...departments.map((d) => ({
-      params: { route: `departments/${d.id}` },
-    })),
+    // { params: { route: "departments" } },
+    // ...departments.map((d) => ({
+    //   params: { route: `departments/${d.id}` },
+    // })),
 ];
 }
 ---

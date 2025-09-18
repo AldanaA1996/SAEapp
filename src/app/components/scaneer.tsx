@@ -5,6 +5,7 @@ import { Button } from "@/app/components/ui/button";
 
 type Props = {
   onDetected?: (code: { rawValue: string; format?: string }) => void;
+  // On mobile, we'll default to autostart for better UX
   autoStart?: boolean;
 };
 
@@ -25,7 +26,11 @@ const SUPPORTED_FORMATS = [
   "itf",
 ];
 
-export default function BarcodeScanner({ onDetected, autoStart = false }: Props) {
+const isMobileUA = typeof navigator !== "undefined" && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+const isLocalhost = typeof location !== "undefined" && /^(localhost|127\.0\.0\.1)/.test(location.hostname);
+const isSecure = typeof location !== "undefined" && (location.protocol === "https:" || isLocalhost);
+
+export default function BarcodeScanner({ onDetected, autoStart = isMobileUA }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -65,10 +70,17 @@ export default function BarcodeScanner({ onDetected, autoStart = false }: Props)
     setError(null);
     setRunning(true);
     try {
+      if (!isSecure) {
+        setError("Para usar la cámara en móviles, abre el sitio con HTTPS o en localhost.");
+        setRunning(false);
+        return;
+      }
       // Enumerate cameras
       await refreshDevices();
       const cams = devices.length ? devices : [];
-      const useId = deviceId || cams[cams.length - 1]?.deviceId; // prefer back camera (last)
+      // Try to prefer back camera
+      const backCam = cams.find((d) => /back|rear|trás|atras/i.test(d.label));
+      const useId = deviceId || backCam?.deviceId || cams[cams.length - 1]?.deviceId;
       // If BarcodeDetector is not available, fallback to ZXing directly
       if (!window.BarcodeDetector) {
         await startZxing(useId);
@@ -76,12 +88,14 @@ export default function BarcodeScanner({ onDetected, autoStart = false }: Props)
         await refreshDevices();
       } else {
         const ms = await navigator.mediaDevices.getUserMedia({
-          video: useId ? { deviceId: { exact: useId } } : { facingMode: "environment" },
+          video: useId ? { deviceId: { exact: useId } } : { facingMode: { ideal: "environment" } },
           audio: false,
         });
         setStream(ms);
         if (videoRef.current) {
           videoRef.current.srcObject = ms;
+          // Ensure playsinline for iOS Safari
+          videoRef.current.setAttribute("playsinline", "true");
           await videoRef.current.play();
         }
         loopDetect();

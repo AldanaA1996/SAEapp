@@ -1,11 +1,12 @@
 import Layout from "@/app/components/layout";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { Label } from "@/app/components/ui/label";
 import { Input } from "@/app/components/ui/input";
 import { Button } from "@/app/components/ui/button";
 import { supabase } from "@/app/lib/supabaseClient";
 import { useAuthenticationStore } from "@/app/store/authentication";
+import BarcodeScanner from "@/app/components/scaneer";
 
 export default function Home() {
   const user = useAuthenticationStore((s) => s.user);
@@ -29,7 +30,7 @@ export default function Home() {
   );
 
   const [materials, setMaterials] = useState<
-    Array<{ id: number; name: string; quantity: number; unit: string | null; department_id: string | null }>
+    Array<{ id: number; name: string; quantity: number; unit: string | null; department_id?: string | null; barcode?: string | null }>
   >([]);
 
   // Ingreso state
@@ -39,11 +40,13 @@ export default function Home() {
   const [inBarcode, setInBarcode] = useState<string>("");
   const [inDescription, setInDescription] = useState<string>("");
   const [loadingIn, setLoadingIn] = useState<boolean>(false);
+  const inQtyRef = useRef<HTMLInputElement | null>(null);
 
   // Egreso state
   const [outMaterialId, setOutMaterialId] = useState<number | "">("");
   const [outQty, setOutQty] = useState<string>("");
   const [loadingOut, setLoadingOut] = useState<boolean>(false);
+  const outQtyRef = useRef<HTMLInputElement | null>(null);
 
   // Unique names for the ingreso datalist
   const uniqueMaterialNames = useMemo(() => {
@@ -61,14 +64,14 @@ export default function Home() {
 
   useEffect(() => {
     const fetchInitial = async () => {
-      const { data: mats } = await supabase.from("inventory").select("id,name,quantity,unit,department_id");
+      const { data: mats } = await supabase.from("inventory").select("id,name,quantity,unit,barcode");
       setMaterials((mats as any) || []);
     };
     fetchInitial();
   }, []);
 
   const refreshMaterials = async () => {
-    const { data } = await supabase.from("inventory").select("id,name,quantity,unit,department_id");
+    const { data } = await supabase.from("inventory").select("id,name,quantity,unit,barcode");
     setMaterials((data as any) || []);
   };
 
@@ -197,19 +200,105 @@ export default function Home() {
     }
   };
 
+  // Handlers de escaneo por código de barras
+  const onScanIngreso = async (code: { rawValue: string; format?: string }) => {
+    const raw = (code?.rawValue || "").trim();
+    if (!raw) return;
+    const normalize = (v: any) => String(v ?? "").trim();
+    const eqBarcode = (a?: string | null, b?: string | null) => {
+      const A = normalize(a);
+      const B = normalize(b);
+      if (A === B) return true;
+      const numA = /^\d+$/.test(A) ? String(parseInt(A, 10)) : null;
+      const numB = /^\d+$/.test(B) ? String(parseInt(B, 10)) : null;
+      if (numA && numB) return numA === numB; // ignore leading zeros
+      return false;
+    };
+    console.log('[Scan ingreso] Código leído:', raw);
+    let match = materials.find((m) => eqBarcode(m.barcode as any, raw));
+    if (!match) {
+      // Fallback: buscar directo en DB por barcode
+      const isNumeric = /^\d+$/.test(raw);
+      const query = supabase.from("inventory").select("id,name,quantity,unit,barcode");
+      const { data } = isNumeric
+        ? await query.or(`barcode.eq.${raw},barcode.eq.${parseInt(raw, 10)}`).maybeSingle()
+        : await query.eq("barcode", raw).maybeSingle();
+      if (data) {
+        match = data as any;
+        // cachear si no existe
+        if (!materials.some((m) => m.id === (data as any).id)) {
+          setMaterials((prev) => [...prev, data as any]);
+        }
+      }
+    }
+    if (match) {
+      console.log('[Scan ingreso] Match encontrado para barcode:', match);
+      setInName(match.name);
+      if (match.unit) setInUnit(match.unit);
+      // llevar foco a cantidad
+      setTimeout(() => inQtyRef.current?.focus(), 0);
+    } else {
+      // Si no existe, precargamos el barcode para crear un material nuevo con ese código
+      setInBarcode(raw);
+      setTimeout(() => inQtyRef.current?.focus(), 0);
+    }
+  };
+
+  const onScanEgreso = async (code: { rawValue: string; format?: string }) => {
+    const raw = (code?.rawValue || "").trim();
+    if (!raw) return;
+    const normalize = (v: any) => String(v ?? "").trim();
+    const eqBarcode = (a?: string | null, b?: string | null) => {
+      const A = normalize(a);
+      const B = normalize(b);
+      if (A === B) return true;
+      const numA = /^\d+$/.test(A) ? String(parseInt(A, 10)) : null;
+      const numB = /^\d+$/.test(B) ? String(parseInt(B, 10)) : null;
+      if (numA && numB) return numA === numB; // ignore leading zeros
+      return false;
+    };
+    console.log('[Scan egreso] Código leído:', raw);
+    let match = materials.find((m) => eqBarcode(m.barcode as any, raw));
+    if (!match) {
+      const isNumeric = /^\d+$/.test(raw);
+      const query = supabase.from("inventory").select("id,name,quantity,unit,barcode");
+      const { data } = isNumeric
+        ? await query.or(`barcode.eq.${raw},barcode.eq.${parseInt(raw, 10)}`).maybeSingle()
+        : await query.eq("barcode", raw).maybeSingle();
+      if (data) {
+        match = data as any;
+        if (!materials.some((m) => m.id === (data as any).id)) {
+          setMaterials((prev) => [...prev, data as any]);
+        }
+      }
+    }
+    if (match) {
+      console.log('[Scan egreso] Match encontrado para barcode:', match);
+      setOutMaterialId(match.id);
+      setTimeout(() => outQtyRef.current?.focus(), 0);
+    }
+  };
+
   return (
     <Layout>
-      <div className="w-full p-6">
-        <h1 className="text-2xl font-semibold mb-4">Movimientos de materiales</h1>
+      <div className="flex flex-col w-full p-6">
+        <h1 className="text-xl font-semibold mb-4">Movimientos diarios de ingresos y egresos</h1>
+        <p>En esta sección puedes registrar los movimientos diarios de ingresos y egresos de materiales ya cargados.</p>
 
-        <Tabs defaultValue="ingreso" className="max-w-3xl">
-          <TabsList>
+        <Tabs defaultValue="ingreso" className="w-full py-4 px-2">
+          <TabsList className="w-full flex justify-center mb-2">
             <TabsTrigger value="ingreso">Ingreso</TabsTrigger>
             <TabsTrigger value="egreso">Egreso</TabsTrigger>
           </TabsList>
 
           <TabsContent value="ingreso">
             <form onSubmit={handleIngreso} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="col-span-1 md:col-span-2">
+                <Label className="pb-4 px-2">Escanear código de barras (opcional)</Label>
+                <div className="border rounded p-2">
+                  <BarcodeScanner onDetected={onScanIngreso} />
+                </div>
+              </div>
               <div className="col-span-1 md:col-span-2">
                 <Label>Nombre del material (selecciona o escribe)</Label>
                 <div className="flex flex-col md:flex-row gap-2">
@@ -225,12 +314,6 @@ export default function Home() {
                       </option>
                     ))}
                   </select>
-                  <Input
-                    placeholder="O escribe un nombre nuevo"
-                    value={inName}
-                    onChange={(e) => setInName(e.target.value)}
-                    autoComplete="off"
-                  />
                 </div>
               </div>
 
@@ -241,6 +324,7 @@ export default function Home() {
                   value={inQty}
                   onChange={(e) => setInQty(e.target.value)}
                   min={0}
+                  ref={inQtyRef}
                 />
               </div>
 
@@ -253,11 +337,6 @@ export default function Home() {
                     </option>
                   ))}
                 </select>
-              </div>
-
-              <div>
-                <Label>Código de barras (opcional)</Label>
-                <Input value={inBarcode} onChange={(e) => setInBarcode(e.target.value)} />
               </div>
 
               <div>
@@ -275,6 +354,12 @@ export default function Home() {
 
           <TabsContent value="egreso">
             <form onSubmit={handleEgreso} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="col-span-1 md:col-span-2">
+                <Label>Escanear código de barras</Label>
+                <div className="border rounded p-2">
+                  <BarcodeScanner onDetected={onScanEgreso} />
+                </div>
+              </div>
               <div>
                 <Label>Material</Label>
                 <select
@@ -298,6 +383,7 @@ export default function Home() {
                   value={outQty}
                   onChange={(e) => setOutQty(e.target.value)}
                   min={0}
+                  ref={outQtyRef}
                 />
               </div>
 

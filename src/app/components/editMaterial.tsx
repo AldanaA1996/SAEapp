@@ -62,32 +62,26 @@ function EditMaterialForm({ material, onClose }: EditMaterialFormProps) {
 
   const onSubmit = async (values: z.infer<typeof schema>) => {
     try {
-        const cleanedValues = Object.fromEntries(
-            Object.entries(values).map(([k, v]) => [k,v === undefined ? null : v])
-        );
-      const { error } = await supabase
+        const cleanedEntries = Object.entries(values).map(([k, v]) => {
+          // map empty strings and NaN to null
+          if (v === undefined || v === "") return [k, null] as const;
+          if (typeof v === "number" && Number.isNaN(v)) return [k, null] as const;
+          return [k, v] as const;
+        });
+        const interim = Object.fromEntries(cleanedEntries) as Record<string, any>;
+        // normalize unit: if 'Select', do not send unit to DB (avoid overwriting with null)
+        if (interim.unit === 'Select') delete interim.unit;
+
+        const { error, data } = await supabase
         .from('inventory')
-        .update(cleanedValues)
-        .eq('id', material.id);
+        .update(interim)
+        .eq('id', material.id)
+        .select()
+        .single();
 
       if (error) throw error;
-
-      // Create activity log: material modified
-      try {
-        const { data: userData } = await supabase.auth.getUser();
-        const userId = userData?.user?.id ?? null;
-        const horaActual = new Date().toLocaleTimeString('en-GB')
-        await supabase.from('activity').insert([
-          {
-            movementType: 'modified',
-            name: material.id, // references inventory.id
-            tool: null,
-            created_at: horaActual,
-            created_by: userId,
-          },
-        ]);
-      } catch (logErr) {
-        console.warn('No se pudo registrar la actividad de modificación (material):', logErr);
+      if (!data) {
+        console.warn('La actualización no devolvió datos. Verifica que el id exista:', material.id);
       }
 
       console.log('Material actualizado');
@@ -112,13 +106,31 @@ function EditMaterialForm({ material, onClose }: EditMaterialFormProps) {
         ))}
       </select>
       <Label htmlFor="weight">Peso</Label>
-      <Input id="weight" type="number" {...form.register('weight', { valueAsNumber: true })} />
+      <Input
+        id="weight"
+        type="number"
+        {...form.register('weight', {
+          setValueAs: (v) => (v === "" || v === undefined ? null : Number(v)),
+        })}
+      />
 
       <Label htmlFor="width">Ancho</Label>
-      <Input id="width" type="number" {...form.register('width', { valueAsNumber: true })} />
+      <Input
+        id="width"
+        type="number"
+        {...form.register('width', {
+          setValueAs: (v) => (v === "" || v === undefined ? null : Number(v)),
+        })}
+      />
 
       <Label htmlFor="height">Alto</Label>
-      <Input id="height" type="number" {...form.register('height', { setValueAs: (v)=> v === "" ? null : Number(v) })} />
+      <Input
+        id="height"
+        type="number"
+        {...form.register('height', {
+          setValueAs: (v) => (v === "" || v === undefined ? null : Number(v)),
+        })}
+      />
 
       <Label htmlFor="color">Color</Label>
       <Input id="color" {...form.register('color')} />
@@ -127,7 +139,7 @@ function EditMaterialForm({ material, onClose }: EditMaterialFormProps) {
       <Input id="manufactur" {...form.register('manufactur')} />
 
       <Label htmlFor="barcode">Código de Barras</Label>
-      <Input id="barcode" {...form.register('barcode')} />
+      <Input id="barcode" {...form.register('barcode', { setValueAs: (v)=> (v === "" || v === undefined ? null : v) })} />
 
       
       <div className="flex items-center gap-3">

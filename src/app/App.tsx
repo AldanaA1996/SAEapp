@@ -59,20 +59,20 @@ export default function App() {
                     }
                 />
                     
-                <Route path="/app/departments" 
+                {/* <Route path="/app/departments" 
                         element={
                             <ProtectedRoute>
                                 <DepartmentsPage />
                             </ProtectedRoute>
                         }
-                    />
-                <Route path="/app/departments/:documentId" 
+                    /> */}
+                {/* <Route path="/app/departments/:documentId" 
                         element={
                             <ProtectedRoute>
                               <DepartmentDetailPage/>
                             </ProtectedRoute>
                         }
-                    />
+                    /> */}
 
                 <Route path="/app/addTool"
                     element={
