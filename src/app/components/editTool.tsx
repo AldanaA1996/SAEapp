@@ -76,6 +76,22 @@ function EditToolForm({ tools, onClose }: EditToolFormProps) {
 
       if (error) throw error;
 
+      // Create activity log: tool modified
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        const userId = userData?.user?.id ?? null;
+        await supabase.from('activity').insert([
+          {
+            movementType: 'modified',
+            name: null,
+            tool: tools.id, // references tools.id
+            created_by: userId,
+          },
+        ]);
+      } catch (logErr) {
+        console.warn('No se pudo registrar la actividad de modificación (tool):', logErr);
+      }
+
       console.log('Herramienta actualizada');
       onClose();
     } catch (err) {

@@ -4,12 +4,14 @@ import Home from "./components/page/Home";
 import DepartmentsPage from "@/app/components/page/departments/DepartmentsPage";
 import DepartmentDetailPage from "@/app/components/page/departments/[id]";
 import ToolsPage from "@/app/components/page/Tools";
+import SearchPage from "@/app/components/page/Search";
 import { useEffect, useState } from "react";
 import { Route, BrowserRouter as Router, Routes  } from "react-router-dom";
 import ProtectedRoute from "@/app/components/ProtectedRoute";
 import { useAuthenticationStore } from "@/app/store/authentication";
 import { useParams as useReactRouterParams } from "react-router-dom";
 import { supabase } from "@/app/lib/supabaseClient";
+import { Movements } from "./components/page/Movements";
 
 
 export default function App() {
@@ -76,6 +78,22 @@ export default function App() {
                     element={
                             <ProtectedRoute>
                                 <ToolsPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                
+                <Route path="/app/search"
+                    element={
+                            <ProtectedRoute>
+                                <SearchPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                
+                <Route path="/app/movements"
+                    element={
+                            <ProtectedRoute>
+                                <Movements />
                             </ProtectedRoute>
                         }
                     />

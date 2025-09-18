@@ -34,16 +34,21 @@ const items = [
     url: "/app/departments",
     icon: DoorOpen,
   },
-  // {
-  //   title: "Movimientos",
-  //   url: "#",
-  //   icon: ArrowUpDown,
-  // },
-  // {
-  //   title: "Voluntarios",
-  //   url: "#",
-  //   icon: UsersRound,
-  // },
+  {
+    title: "Buscar",
+    url: "/app/search",
+    icon: Search,
+  },
+  {
+    title: "Movimientos",
+    url: "/app/movements",
+    icon: ArrowUpDown,
+  },
+  {
+    title: "Voluntarios",
+    url: "#",
+    icon: UsersRound,
+  },
   
 ]
 

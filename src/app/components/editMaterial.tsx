@@ -72,6 +72,24 @@ function EditMaterialForm({ material, onClose }: EditMaterialFormProps) {
 
       if (error) throw error;
 
+      // Create activity log: material modified
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        const userId = userData?.user?.id ?? null;
+        const horaActual = new Date().toLocaleTimeString('en-GB')
+        await supabase.from('activity').insert([
+          {
+            movementType: 'modified',
+            name: material.id, // references inventory.id
+            tool: null,
+            created_at: horaActual,
+            created_by: userId,
+          },
+        ]);
+      } catch (logErr) {
+        console.warn('No se pudo registrar la actividad de modificación (material):', logErr);
+      }
+
       console.log('Material actualizado');
       onClose();
     } catch (err) {

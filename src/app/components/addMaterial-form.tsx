@@ -23,9 +23,14 @@ const schema = z.object({
   department_id: z.string().min(1, 'El departamento es requerido'),
   movementType: z.enum(MovimientosM),
   description: z.string().optional(),
+  barcode: z.string().optional(),
 });
 
-function AddMaterialForm() {
+interface AddMaterialFormProps {
+  scannedBarcode?: string;
+}
+
+function AddMaterialForm({ scannedBarcode }: AddMaterialFormProps) {
   const [departments, setDepartments] = useState<any[]>();
   const user = useAuthenticationStore((state) => state.user);
 
@@ -52,8 +57,16 @@ function AddMaterialForm() {
       department_id: '',
       movementType: 'entry',
       description: '',
+      barcode: '',
     },
   });
+
+  useEffect(() => {
+    if (scannedBarcode) {
+      form.setValue('barcode', scannedBarcode, { shouldDirty: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scannedBarcode]);
 
  const onSubmit = async (values: z.infer<typeof schema>) => {
   try {
@@ -67,6 +80,7 @@ function AddMaterialForm() {
         description: values.description,
         department_id: values.department_id,
         unit: values.unit,
+        barcode: values.barcode,
         created_at: new Date().toISOString(),
       },
      ])
@@ -104,6 +118,9 @@ function AddMaterialForm() {
 
       <Label htmlFor="quantity">Cantidad</Label>
       <Input id="quantity" type="number" {...form.register('quantity', { valueAsNumber: true })} placeholder="Cantidad" />
+
+      <Label htmlFor="barcode">Código de barras</Label>
+      <Input id="barcode" {...form.register('barcode')} placeholder="Escanéalo o escríbelo" />
 
       <Label htmlFor="unit">Unidad</Label>
       <select id="unit" {...form.register('unit')} className="border rounded p-2">

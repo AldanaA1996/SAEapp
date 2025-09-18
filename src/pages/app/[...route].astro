@@ -25,6 +25,10 @@ export function getStaticPaths() {
         {id: "12" }, //auditorio
         {id: "13" }, //plataforma
         {id: "14" }, //capacitaciones
+        {id: "15" }, 
+        {id: "16" }, 
+        {id: "17" }, 
+        {id: "18"}
 
     ];
     return [ { params: { route: undefined } },
@@ -32,6 +36,8 @@ export function getStaticPaths() {
     { params: { route: "home" }},
     { params: { route: "inventario" } },
     { params: { route: "addTool"} },
+    { params: { route: "search" } },
+    { params: { route: "movements" } },
     { params: { route: "departments" } },
     ...departments.map((d) => ({
       params: { route: `departments/${d.id}` },
