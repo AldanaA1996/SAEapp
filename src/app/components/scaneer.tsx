@@ -87,16 +87,31 @@ export default function BarcodeScanner({ onDetected, autoStart = isMobileUA }: P
         // After ZXing starts, we have permission; refresh to get labels
         await refreshDevices();
       } else {
-        const ms = await navigator.mediaDevices.getUserMedia({
-          video: useId ? { deviceId: { exact: useId } } : { facingMode: { ideal: "environment" } },
-          audio: false,
-        });
+        // Try with preferred constraints first
+        let ms: MediaStream | null = null;
+        try {
+          ms = await navigator.mediaDevices.getUserMedia({
+            video: useId ? { deviceId: { exact: useId } } : { facingMode: { ideal: "environment" } },
+            audio: false,
+          });
+        } catch {
+          // Fallback to any available camera
+          ms = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        }
         setStream(ms);
-        if (videoRef.current) {
+        if (videoRef.current && ms) {
           videoRef.current.srcObject = ms;
-          // Ensure playsinline for iOS Safari
+          // Ensure playsinline for iOS Safari and disable picture-in-picture on mobile
           videoRef.current.setAttribute("playsinline", "true");
-          await videoRef.current.play();
+          (videoRef.current as any).disablePictureInPicture = true;
+          try {
+            await videoRef.current.play();
+          } catch (e) {
+            // Autoplay might be blocked on iOS; require user gesture
+            setError("Pulsa 'Iniciar' para comenzar el escaneo (se requiere interacción del usuario).");
+            setRunning(false);
+            return;
+          }
         }
         loopDetect();
         // Now that permission granted, refresh to get labels
