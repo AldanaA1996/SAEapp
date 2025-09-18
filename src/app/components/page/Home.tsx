@@ -6,7 +6,8 @@ import { Input } from "@/app/components/ui/input";
 import { Button } from "@/app/components/ui/button";
 import { supabase } from "@/app/lib/supabaseClient";
 import { useAuthenticationStore } from "@/app/store/authentication";
-import BarcodeScanner from "@/app/components/scaneer";
+// import BarcodeScanner from "@/app/components/scaneer"; // scanner deshabilitado temporalmente
+import { toast } from "sonner";
 
 export default function Home() {
   const user = useAuthenticationStore((s) => s.user);
@@ -30,8 +31,9 @@ export default function Home() {
   );
 
   const [materials, setMaterials] = useState<
-    Array<{ id: number; name: string; quantity: number; unit: string | null; department_id?: string | null; barcode?: string | null }>
+    Array<{ id: number; name: string; quantity: number; unit: string | null; department_id?: string | null; barcode?: string | null; min_quantity?: number | null }>
   >([]);
+  const [alerted, setAlerted] = useState<Set<number>>(new Set());
 
   // Ingreso state
   const [inName, setInName] = useState<string>("");
@@ -64,16 +66,36 @@ export default function Home() {
 
   useEffect(() => {
     const fetchInitial = async () => {
-      const { data: mats } = await supabase.from("inventory").select("id,name,quantity,unit,barcode");
+      const { data: mats } = await supabase.from("inventory").select("id,name,quantity,unit,barcode,min_quantity");
       setMaterials((mats as any) || []);
     };
     fetchInitial();
   }, []);
 
   const refreshMaterials = async () => {
-    const { data } = await supabase.from("inventory").select("id,name,quantity,unit,barcode");
+    const { data } = await supabase.from("inventory").select("id,name,quantity,unit,barcode,min_quantity");
     setMaterials((data as any) || []);
   };
+
+  // Low-stock alerts
+  useEffect(() => {
+    if (!materials?.length) return;
+    setAlerted((prev) => {
+      const next = new Set(prev);
+      materials.forEach((m) => {
+        const min = typeof m.min_quantity === 'number' ? m.min_quantity : undefined;
+        if (min !== undefined && min >= 0 && typeof m.quantity === 'number' && m.quantity <= min) {
+          if (!next.has(m.id)) {
+            toast.warning(`Stock bajo: ${m.name}`, {
+              description: `Cantidad actual: ${m.quantity}${m.unit ? ' ' + m.unit : ''}. Mínimo definido: ${min}.`,
+            });
+            next.add(m.id);
+          }
+        }
+      });
+      return next;
+    });
+  }, [materials]);
 
   const handleIngreso = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -151,6 +173,14 @@ export default function Home() {
       setInBarcode("");
       setInDescription("");
       await refreshMaterials();
+      // After refresh, show alert if still under min
+      const m = (materials.find((x) => x.name.toLowerCase() === inName.trim().toLowerCase()) ?? null) as any;
+      if (m && typeof m.min_quantity === 'number' && m.quantity <= m.min_quantity && !alerted.has(m.id)) {
+        toast.warning(`Stock bajo: ${m.name}`, {
+          description: `Cantidad actual: ${m.quantity}${m.unit ? ' ' + m.unit : ''}. Mínimo definido: ${m.min_quantity}.`,
+        });
+        setAlerted((s) => new Set(s).add(m.id));
+      }
     } catch (err) {
       console.error("Error en ingreso:", err);
     } finally {
@@ -193,6 +223,13 @@ export default function Home() {
       setOutQty("");
       setOutMaterialId("");
       await refreshMaterials();
+      // Alert if new stock is below defined minimum
+      if (material && typeof material.min_quantity === 'number' && newQty <= material.min_quantity && !alerted.has(material.id)) {
+        toast.warning(`Stock bajo: ${material.name}`, {
+          description: `Cantidad actual: ${newQty}${material.unit ? ' ' + material.unit : ''}. Mínimo definido: ${material.min_quantity}.`,
+        });
+        setAlerted((s) => new Set(s).add(material.id));
+      }
     } catch (err) {
       console.error("Error en egreso:", err);
     } finally {
@@ -200,114 +237,41 @@ export default function Home() {
     }
   };
 
-  // Handlers de escaneo por código de barras
-  const onScanIngreso = async (code: { rawValue: string; format?: string }) => {
-    const raw = (code?.rawValue || "").trim();
-    if (!raw) return;
-    const normalize = (v: any) => String(v ?? "").trim();
-    const eqBarcode = (a?: string | null, b?: string | null) => {
-      const A = normalize(a);
-      const B = normalize(b);
-      if (A === B) return true;
-      const numA = /^\d+$/.test(A) ? String(parseInt(A, 10)) : null;
-      const numB = /^\d+$/.test(B) ? String(parseInt(B, 10)) : null;
-      if (numA && numB) return numA === numB; // ignore leading zeros
-      return false;
-    };
-    console.log('[Scan ingreso] Código leído:', raw);
-    let match = materials.find((m) => eqBarcode(m.barcode as any, raw));
-    if (!match) {
-      // Fallback: buscar directo en DB por barcode
-      const isNumeric = /^\d+$/.test(raw);
-      const query = supabase.from("inventory").select("id,name,quantity,unit,barcode");
-      const { data } = isNumeric
-        ? await query.or(`barcode.eq.${raw},barcode.eq.${parseInt(raw, 10)}`).maybeSingle()
-        : await query.eq("barcode", raw).maybeSingle();
-      if (data) {
-        match = data as any;
-        // cachear si no existe
-        if (!materials.some((m) => m.id === (data as any).id)) {
-          setMaterials((prev) => [...prev, data as any]);
-        }
-      }
-    }
-    if (match) {
-      console.log('[Scan ingreso] Match encontrado para barcode:', match);
-      setInName(match.name);
-      if (match.unit) setInUnit(match.unit);
-      // llevar foco a cantidad
-      setTimeout(() => inQtyRef.current?.focus(), 0);
-    } else {
-      // Si no existe, precargamos el barcode para crear un material nuevo con ese código
-      setInBarcode(raw);
-      setTimeout(() => inQtyRef.current?.focus(), 0);
-    }
-  };
-
-  const onScanEgreso = async (code: { rawValue: string; format?: string }) => {
-    const raw = (code?.rawValue || "").trim();
-    if (!raw) return;
-    const normalize = (v: any) => String(v ?? "").trim();
-    const eqBarcode = (a?: string | null, b?: string | null) => {
-      const A = normalize(a);
-      const B = normalize(b);
-      if (A === B) return true;
-      const numA = /^\d+$/.test(A) ? String(parseInt(A, 10)) : null;
-      const numB = /^\d+$/.test(B) ? String(parseInt(B, 10)) : null;
-      if (numA && numB) return numA === numB; // ignore leading zeros
-      return false;
-    };
-    console.log('[Scan egreso] Código leído:', raw);
-    let match = materials.find((m) => eqBarcode(m.barcode as any, raw));
-    if (!match) {
-      const isNumeric = /^\d+$/.test(raw);
-      const query = supabase.from("inventory").select("id,name,quantity,unit,barcode");
-      const { data } = isNumeric
-        ? await query.or(`barcode.eq.${raw},barcode.eq.${parseInt(raw, 10)}`).maybeSingle()
-        : await query.eq("barcode", raw).maybeSingle();
-      if (data) {
-        match = data as any;
-        if (!materials.some((m) => m.id === (data as any).id)) {
-          setMaterials((prev) => [...prev, data as any]);
-        }
-      }
-    }
-    if (match) {
-      console.log('[Scan egreso] Match encontrado para barcode:', match);
-      setOutMaterialId(match.id);
-      setTimeout(() => outQtyRef.current?.focus(), 0);
-    }
-  };
+  // Handlers de escaneo deshabilitados temporalmente
+  // const onScanIngreso = async (code: { rawValue: string; format?: string }) => { /* ... */ };
+  // const onScanEgreso = async (code: { rawValue: string; format?: string }) => { /* ... */ };
 
   return (
     <Layout>
       <div className="flex flex-col w-full p-6">
         <h1 className="text-xl font-semibold mb-4">Movimientos diarios de ingresos y egresos</h1>
-        <p>En esta sección puedes registrar los movimientos diarios de ingresos y egresos de materiales ya cargados.</p>
+        <p>En esta sección puedes registrar los movimientos diarios de ingresos y egresos de elementos ya cargados.</p>
 
-        <Tabs defaultValue="ingreso" className="w-full py-4 px-2">
+        <Tabs defaultValue="egreso" className="w-full py-4 px-2">
           <TabsList className="w-full flex justify-center mb-2">
-            <TabsTrigger value="ingreso">Ingreso</TabsTrigger>
             <TabsTrigger value="egreso">Egreso</TabsTrigger>
+            <TabsTrigger value="ingreso">Ingreso</TabsTrigger>
           </TabsList>
 
           <TabsContent value="ingreso">
             <form onSubmit={handleIngreso} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/** Escáner deshabilitado temporalmente **/}
+              {/**
               <div className="col-span-1 md:col-span-2">
                 <Label className="pb-4 px-2">Escanear código de barras (opcional)</Label>
                 <div className="border rounded p-2">
                   <BarcodeScanner onDetected={onScanIngreso} />
                 </div>
               </div>
+              **/}
               <div className="col-span-1 md:col-span-2">
-                <Label>Nombre del material (selecciona o escribe)</Label>
                 <div className="flex flex-col md:flex-row gap-2">
                   <select
                     className="border rounded p-2 w-full md:w-1/2"
                     value={uniqueMaterialNames.includes(inName) ? inName : ""}
                     onChange={(e) => setInName(e.target.value)}
                   >
-                    <option value="">Selecciona un material existente</option>
+                    <option value="">Selecciona un objeto existente</option>
                     {sortedMaterials.map((m) => (
                       <option key={m.id} value={m.name}>
                         {m.name}
@@ -354,12 +318,15 @@ export default function Home() {
 
           <TabsContent value="egreso">
             <form onSubmit={handleEgreso} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/** Escáner deshabilitado temporalmente **/}
+              {/**
               <div className="col-span-1 md:col-span-2">
                 <Label>Escanear código de barras</Label>
                 <div className="border rounded p-2">
                   <BarcodeScanner onDetected={onScanEgreso} />
                 </div>
               </div>
+              **/}
               <div>
                 <Label>Material</Label>
                 <select

@@ -22,6 +22,7 @@ const schema = z.object({
   hasQrCode: z.boolean().nullable().optional(),
   description: z.string().nullable().optional(),
   unit: z.enum(Medidas),
+  min_quantity: z.number().nullable().optional(),
 });
 
 interface EditMaterialFormProps {
@@ -35,6 +36,7 @@ interface EditMaterialFormProps {
     color?: string;
     manufactur?: string;
     barcode?: string;
+    min_quantity?: number;
     hasQrCode?: boolean;
     description?: string;
     unit: "Select" | "Kg" | "Mts" | "Cms" | "Caja" | "Unidad" | "Paquete" | "Litro" | "Gramo" | "Pieza" | "Bolsa" | "Otro";
@@ -57,6 +59,7 @@ function EditMaterialForm({ material, onClose }: EditMaterialFormProps) {
       hasQrCode: material.hasQrCode,
       description: material.description,
       unit: material.unit,
+      min_quantity: material.min_quantity,
     },
   });
 
@@ -105,6 +108,10 @@ function EditMaterialForm({ material, onClose }: EditMaterialFormProps) {
           <option key={medida} value={medida}>{medida}</option>
         ))}
       </select>
+
+      <Label htmlFor="min_quantity" className="font-semibold px-4">Alerta de stock mínimo (opcional)</Label>
+      <Input id="min_quantity" type="number" step="1" min="0" {...form.register('min_quantity', { valueAsNumber: true })} placeholder="Ej: 5" />
+
       <Label htmlFor="weight">Peso</Label>
       <Input
         id="weight"

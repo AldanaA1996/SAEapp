@@ -15,12 +15,12 @@ import {
 // Menu items.
 const items = [
   {
-    title: "Home",
+    title: "Pañol",
     url: "/app/home",
     icon: Home,
   },
   {
-    title: "Inventario",
+    title: "Carga de Stock",
     url: "/app/inventario",
     icon: Package,
   },
@@ -35,12 +35,12 @@ const items = [
   //   icon: DoorOpen,
   // },
   {
-    title: "Buscar",
+    title: "Buscador de Material",
     url: "/app/search",
     icon: Search,
   },
   {
-    title: "Movimientos",
+    title: "Control",
     url: "/app/movements",
     icon: ArrowUpDown,
   },

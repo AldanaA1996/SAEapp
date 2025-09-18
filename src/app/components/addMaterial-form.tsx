@@ -17,6 +17,8 @@ const schema = z.object({
   quantity: z.number().min(1, 'La cantidad es requerida'),
   unit: z.enum(Medidas),
   description: z.string().optional(),
+  manufactur: z.string().optional(),
+  min_quantity: z.number().min(0).optional(),
   barcode: z.string().optional(),
 });
 
@@ -25,14 +27,14 @@ interface AddMaterialFormProps {
 }
 
 function AddMaterialForm({ scannedBarcode }: AddMaterialFormProps) {
-  const [materials, setMaterials] = useState<Array<{ id: number; name: string; quantity: number; unit: string | null }>>([]);
+  const [materials, setMaterials] = useState<Array<{ id: number; name: string; quantity: number; unit: string | null; min_quantity?: number | null }>>([]);
   const user = useAuthenticationStore((state) => state.user);
 
   useEffect(() => {
     const fetchInventory = async ()=> {
       const { data, error } = await supabase
         .from('inventory')
-        .select('id,name,quantity,unit');
+        .select('id,name,quantity,unit,min_quantity,manufactur,barcode');
       if (error) {
         console.error('Error al cargar inventario:', error);
       } else {
@@ -49,6 +51,8 @@ function AddMaterialForm({ scannedBarcode }: AddMaterialFormProps) {
       quantity: 0,
       unit: 'Select',
       description: '',
+      manufactur: '',
+      min_quantity: undefined,
       barcode: '',
     },
   });
@@ -75,6 +79,8 @@ function AddMaterialForm({ scannedBarcode }: AddMaterialFormProps) {
           quantity: newQty,
           unit: unitValue ?? existing.unit,
           description: values.description ?? null,
+          manufactur: values.manufactur ?? null,
+          min_quantity: values.min_quantity ?? (existing as any)?.min_quantity ?? null,
           barcode: values.barcode ?? null,
         })
         .eq('id', existing.id);
@@ -103,6 +109,8 @@ function AddMaterialForm({ scannedBarcode }: AddMaterialFormProps) {
             unit: unitValue,
             department_id: null,
             description: values.description ?? null,
+            manufactur: values.manufactur ?? null,
+            min_quantity: values.min_quantity ?? null,
             barcode: values.barcode ?? null,
             created_at: new Date().toISOString(),
           },
@@ -125,7 +133,7 @@ function AddMaterialForm({ scannedBarcode }: AddMaterialFormProps) {
     }
 
     // refrescar cache local
-    const { data: mats } = await supabase.from('inventory').select('id,name,quantity,unit');
+    const { data: mats } = await supabase.from('inventory').select('id,name,quantity,unit,min_quantity');
     setMaterials((mats as any) || []);
 
     form.reset();
@@ -137,7 +145,7 @@ function AddMaterialForm({ scannedBarcode }: AddMaterialFormProps) {
  };
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4 w-1/2">
+    <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4 w-full md:w-1/2">
       <Label htmlFor="name" className="font-semibold pt-2 px-4">Nombre del Material</Label>
       <div className="flex flex-col md:flex-row">
         <Input id="name" {...form.register('name')} placeholder="Ingrese el nombre del material" />
@@ -153,6 +161,21 @@ function AddMaterialForm({ scannedBarcode }: AddMaterialFormProps) {
           <option key={medida} value={medida}>{medida}</option>
         ))}
       </select>
+
+      <Label htmlFor="min_quantity" className="font-semibold px-4">Alerta de stock mínimo (opcional)</Label>
+      <Input
+        id="min_quantity"
+        type="number"
+        step="1"
+        min="0"
+        {...form.register('min_quantity', {
+          setValueAs: (v) => (v === '' || v === null || v === undefined ? undefined : Number(v)),
+        })}
+        placeholder="Ej: 5"
+      />
+
+      <Label htmlFor='manufactur' className="font-semibold px-4">Fabricante (opcional)</Label>
+      <Input id="manufactur" {...form.register('manufactur')} placeholder="Fabricante" />
       
       <Label htmlFor="barcode" className="font-semibold px-4">Código de barras</Label>
       <Input id="barcode" {...form.register('barcode')} placeholder="Escanéalo o escríbelo" />

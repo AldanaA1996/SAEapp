@@ -14,6 +14,7 @@ type Inventory = {
   name: string;
   quantity: number;
   unit: string | null;
+  min_quantity?: number | null;
   weight?: number | null;
   width?: number | null;
   height?: number | null;
@@ -173,12 +174,20 @@ export default function SearchPage() {
             {filteredMaterials.length === 0 ? (
               <p className="text-center text-gray-500">No se encontraron materiales.</p>
             ) : (
-              filteredMaterials.slice(0, matVisible).map((m) => (
-                <Card key={m.id} className="p-4 shadow-sm border">
+              filteredMaterials.slice(0, matVisible).map((m) => {
+                const low = typeof m.min_quantity === 'number' && m.min_quantity >= 0 && typeof m.quantity === 'number' && m.quantity <= m.min_quantity;
+                return (
+                <Card
+                  key={m.id}
+                  className={`p-4 shadow-sm border ${low ? 'border-red-400 bg-red-50/60' : ''}`}
+                >
                   <div className="flex items-center justify-between gap-2">
                     <div>
-                      <h2 className="text-lg font-semibold">{m.name}</h2>
-                      <p className="text-sm text-gray-500">{m.quantity} {m.unit}</p>
+                      <h2 className={`text-lg font-semibold ${low ? 'text-red-700' : ''}`}>{m.name}</h2>
+                      <p className={`text-sm ${low ? 'text-red-700 font-medium' : 'text-gray-500'}`}>
+                        {m.quantity} {m.unit}
+                        {low && typeof m.min_quantity === 'number' ? ` · mínimo: ${m.min_quantity}` : ''}
+                      </p>
                       {m.manufactur && (
                         <p className="text-sm text-gray-500">Fabricante: {m.manufactur}</p>
                       )}
@@ -202,7 +211,7 @@ export default function SearchPage() {
                     </div>
                   </div>
                 </Card>
-              ))
+              )})
             )}
             {/* Sentinel for materials */}
             {filteredMaterials.length > matVisible && <div ref={matSentinelRef} />}

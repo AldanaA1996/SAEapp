@@ -30,7 +30,7 @@ const isMobileUA = typeof navigator !== "undefined" && /Mobi|Android|iPhone|iPad
 const isLocalhost = typeof location !== "undefined" && /^(localhost|127\.0\.0\.1)/.test(location.hostname);
 const isSecure = typeof location !== "undefined" && (location.protocol === "https:" || isLocalhost);
 
-export default function BarcodeScanner({ onDetected, autoStart = isMobileUA }: Props) {
+export default function BarcodeScanner({ onDetected, autoStart = false }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -41,6 +41,7 @@ export default function BarcodeScanner({ onDetected, autoStart = isMobileUA }: P
   const [lastCode, setLastCode] = useState<string>("");
   const [usingZxing, setUsingZxing] = useState(false);
   const zxingReaderRef = useRef<any | null>(null);
+  const [forceCompat, setForceCompat] = useState(false);
 
   const refreshDevices = useCallback(async () => {
     try {
@@ -64,15 +65,15 @@ export default function BarcodeScanner({ onDetected, autoStart = isMobileUA }: P
     }
     setStream(null);
     setUsingZxing(false);
+    setLastCode("");
   }, [stream]);
 
   const start = useCallback(async () => {
+    if (running) return; // prevent double start
     setError(null);
-    setRunning(true);
     try {
       if (!isSecure) {
         setError("Para usar la cámara en móviles, abre el sitio con HTTPS o en localhost.");
-        setRunning(false);
         return;
       }
       // Enumerate cameras
@@ -81,11 +82,12 @@ export default function BarcodeScanner({ onDetected, autoStart = isMobileUA }: P
       // Try to prefer back camera
       const backCam = cams.find((d) => /back|rear|trás|atras/i.test(d.label));
       const useId = deviceId || backCam?.deviceId || cams[cams.length - 1]?.deviceId;
-      // If BarcodeDetector is not available, fallback to ZXing directly
-      if (!window.BarcodeDetector) {
+      // If forced compat or BarcodeDetector is not available, use ZXing
+      if (forceCompat || !window.BarcodeDetector) {
         await startZxing(useId);
         // After ZXing starts, we have permission; refresh to get labels
         await refreshDevices();
+        setRunning(true);
       } else {
         // Try with preferred constraints first
         let ms: MediaStream | null = null;
@@ -109,19 +111,18 @@ export default function BarcodeScanner({ onDetected, autoStart = isMobileUA }: P
           } catch (e) {
             // Autoplay might be blocked on iOS; require user gesture
             setError("Pulsa 'Iniciar' para comenzar el escaneo (se requiere interacción del usuario).");
-            setRunning(false);
             return;
           }
         }
         loopDetect();
         // Now that permission granted, refresh to get labels
         await refreshDevices();
+        setRunning(true);
       }
     } catch (e: any) {
       setError(e?.message || "No se pudo acceder a la cámara");
-      setRunning(false);
     }
-  }, [deviceId, devices.length, refreshDevices]);
+  }, [deviceId, devices.length, refreshDevices, running, forceCompat]);
 
   // Core detection loop using BarcodeDetector
   const loopDetect = useCallback(async () => {
@@ -232,6 +233,13 @@ export default function BarcodeScanner({ onDetected, autoStart = isMobileUA }: P
               </option>
             ))}
           </select>
+        </div>
+        <div>
+          <label className="block text-xs text-gray-600 mb-1">Compatibilidad</label>
+          <label className="inline-flex items-center gap-2 h-9">
+            <input type="checkbox" checked={forceCompat} onChange={(e) => setForceCompat(e.target.checked)} />
+            <span className="text-xs">Forzar ZXing</span>
+          </label>
         </div>
         <div className="pt-6">
           <Button type="button" variant="outline" onClick={refreshDevices}>

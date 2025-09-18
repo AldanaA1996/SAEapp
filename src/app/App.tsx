@@ -12,7 +12,7 @@ import { useAuthenticationStore } from "@/app/store/authentication";
 import { useParams as useReactRouterParams } from "react-router-dom";
 import { supabase } from "@/app/lib/supabaseClient";
 import { Movements } from "./components/page/Movements";
-
+import { Toaster } from "@/app/components/ui/sonner";
 
 export default function App() {
    const { setSession } = useAuthenticationStore()
@@ -37,6 +37,7 @@ export default function App() {
 
     return (
         <Router>
+            <Toaster richColors position="top-center" closeButton />
             <Routes>
                 <Route path="/app" element={<Login />} />
               

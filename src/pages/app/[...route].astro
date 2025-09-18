@@ -1,11 +1,13 @@
 ---
 import type { GetStaticPaths } from "astro";
 import "src/styles/global.css"
+
 //component imports
 import App from "../../app/App"
 import Layout from "../../components/Layout/Layout.astro";
 import LayoutApp from "../../components/Layout/LayoutApp.astro";
 import LayoutPage from "../../components/Layout/LayoutPage.astro";
+
 import { z } from "zod";
 const title = "SAE Depo"
 
@@ -50,5 +52,6 @@ export function getStaticPaths() {
 <Layout title={title} >
     <LayoutPage>
         <App client:only="react" />
+        
     </LayoutPage>
 </Layout>
