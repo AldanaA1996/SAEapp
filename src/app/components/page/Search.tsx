@@ -30,6 +30,7 @@ export default function SearchPage() {
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(true);
   const [materials, setMaterials] = useState<Inventory[]>([]);
+  const [onlyLow, setOnlyLow] = useState<boolean>(false);
   
   // Tabs removed: only inventory is used in the project
 
@@ -138,6 +139,19 @@ export default function SearchPage() {
     });
   }, [q, materials]);
 
+  // Low-stock first sorting (then by name)
+  const sortedForRender = useMemo(() => {
+    const isLow = (m: Inventory) =>
+      typeof m.min_quantity === 'number' && m.min_quantity >= 0 && typeof m.quantity === 'number' && m.quantity <= m.min_quantity;
+    const base = onlyLow ? filteredMaterials.filter(isLow) : filteredMaterials;
+    return [...base].sort((a, b) => {
+      const la = isLow(a) ? 1 : 0;
+      const lb = isLow(b) ? 1 : 0;
+      if (lb !== la) return lb - la; // low stock first
+      return a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+    });
+  }, [filteredMaterials, onlyLow]);
+
 
   // Normalize objects to match Edit forms' expected props (undefined instead of null, safe unit)
   const normalizeMaterial = (m: Inventory) => ({
@@ -160,11 +174,27 @@ export default function SearchPage() {
       <div className="p-0 md:p-6 max-w-5xl mx-auto w-full">
         <div className="sticky top-0 z-20 bg-white/80 backdrop-blur border-b px-6 py-4 md:px-0 py-4">
           <h1 className="text-xl md:text-2xl font-bold mb-3">Buscar en Inventario</h1>
-          <Input
-            placeholder="Buscar por nombre, fabricante, código, etc."
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
+          <div className="flex flex-col md:flex-row md:items-center md:gap-4 gap-2">
+            <div className="flex-1">
+              <Input
+                placeholder="Buscar por nombre, fabricante, código, etc."
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+              />
+            </div>
+            <label className="inline-flex items-center gap-2 text-sm select-none">
+              <input type="checkbox" checked={onlyLow} onChange={(e) => setOnlyLow(e.target.checked)} />
+              <span>Solo bajo stock</span>
+              <span className="text-xs text-gray-500">(
+                {
+                  (() => {
+                    const count = materials.filter((m) => typeof m.min_quantity === 'number' && m.min_quantity >= 0 && typeof m.quantity === 'number' && m.quantity <= m.min_quantity).length;
+                    return count;
+                  })()
+                }
+              )</span>
+            </label>
+          </div>
         </div>
 
         {loading ? (
@@ -174,7 +204,7 @@ export default function SearchPage() {
             {filteredMaterials.length === 0 ? (
               <p className="text-center text-gray-500">No se encontraron materiales.</p>
             ) : (
-              filteredMaterials.slice(0, matVisible).map((m) => {
+              sortedForRender.slice(0, matVisible).map((m) => {
                 const low = typeof m.min_quantity === 'number' && m.min_quantity >= 0 && typeof m.quantity === 'number' && m.quantity <= m.min_quantity;
                 return (
                 <Card
@@ -183,7 +213,14 @@ export default function SearchPage() {
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div>
-                      <h2 className={`text-lg font-semibold ${low ? 'text-red-700' : ''}`}>{m.name}</h2>
+                      <h2 className={`text-lg font-semibold ${low ? 'text-red-700' : ''}`}>
+                        {m.name}
+                        {low && (
+                          <span className="ml-3 inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold bg-red-100 text-red-700 border border-red-300 align-middle">
+                            Stock bajo
+                          </span>
+                        )}
+                      </h2>
                       <p className={`text-sm ${low ? 'text-red-700 font-medium' : 'text-gray-500'}`}>
                         {m.quantity} {m.unit}
                         {low && typeof m.min_quantity === 'number' ? ` · mínimo: ${m.min_quantity}` : ''}
@@ -228,9 +265,11 @@ export default function SearchPage() {
                 <div className="text-sm">
                   <p><strong>Nombre:</strong> {selectedMaterial.name}</p>
                   <p><strong>Cantidad:</strong> {selectedMaterial.quantity} {selectedMaterial.unit}</p>
+                  {selectedMaterial.min_quantity && <p><strong>Mínimo:</strong> {selectedMaterial.min_quantity}</p>}
                   {selectedMaterial.manufactur && <p><strong>Fabricante:</strong> {selectedMaterial.manufactur}</p>}
                   {selectedMaterial.barcode && <p><strong>Código:</strong> {selectedMaterial.barcode}</p>}
                   {selectedMaterial.description && <p>{selectedMaterial.description}</p>}
+
                 </div>
               )}
             </div>

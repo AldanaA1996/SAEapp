@@ -118,3 +118,76 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Sonner toaster fixes: ensure above sidebar and sticky headers */
+[data-sonner-toaster] {
+  position: fixed !important;
+  z-index: 2147483647 !important; /* on top of everything */
+  pointer-events: none; /* container doesn't block clicks */
+}
+[data-sonner-toaster][data-y-position="top"] { top: 12px !important; }
+[data-sonner-toaster][data-y-position="bottom"] { bottom: 12px !important; }
+[data-sonner-toaster][data-x-position="right"] { right: 12px !important; }
+[data-sonner-toaster][data-x-position="left"] { left: 12px !important; }
+[data-sonner-toaster] [data-sonner-toast] { pointer-events: auto; }
+
+/* Minimal Sonner base styles (since package CSS isn't available) */
+[data-sonner-toast] {
+  background: var(--popover);
+  color: var(--popover-foreground);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin: 8px 0;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  min-width: 280px;
+  max-width: 420px;
+  font-size: 14px;
+}
+[data-sonner-toast] [data-title] {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+[data-sonner-toast] [data-description] {
+  opacity: 0.9;
+}
+[data-sonner-toast] [data-icon] {
+  margin-right: 8px;
+}
+[data-sonner-toast] [data-close-button] {
+  background: transparent;
+  border: none;
+  color: inherit;
+  opacity: 0.7;
+  cursor: pointer;
+}
+[data-sonner-toast] [data-close-button]:hover { opacity: 1; }
+
+/* Variants */
+[data-sonner-toast][data-type="success"] {
+  border-color: rgba(16, 185, 129, 0.35);
+  background: color-mix(in oklch, var(--popover), oklch(0.929 0.013 155) 12%);
+}
+[data-sonner-toast][data-type="warning"] {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: color-mix(in oklch, var(--popover), oklch(0.95 0.1 80) 12%);
+}
+[data-sonner-toast][data-type="error"] {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: color-mix(in oklch, var(--popover), oklch(0.92 0.12 30) 12%);
+}
+
+/* Progress bar */
+[data-sonner-toast] [data-sonner-progress] {
+  height: 3px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+  margin-top: 8px;
+}
+[data-sonner-toast] [data-sonner-progress] > div {
+  background: var(--primary);
+}

@@ -14,6 +14,7 @@ import { supabase } from "@/app/lib/supabaseClient";
 import { Movements } from "./components/page/Movements";
 import { Toaster } from "@/app/components/ui/sonner";
 
+
 export default function App() {
    const { setSession } = useAuthenticationStore()
  
@@ -36,8 +37,9 @@ export default function App() {
    
 
     return (
-        <Router>
-            <Toaster richColors position="top-center" closeButton />
+        <>
+            <Toaster richColors position="top-right" closeButton style={{ zIndex: 2147483647, marginTop: 8, marginRight: 8 }} />
+            <Router>
             <Routes>
                 <Route path="/app" element={<Login />} />
               
@@ -100,6 +102,7 @@ export default function App() {
                     />
                 
             </Routes>
-        </Router>
+            </Router>
+        </>
     )
 }
