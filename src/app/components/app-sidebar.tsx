@@ -1,4 +1,4 @@
-import { ArrowUpDown, Home, Package, Search, Settings, Drill, DoorOpen, UsersRound } from "lucide-react"
+import { ArrowUpDown, Home, Package, Search, Settings, Drill, DoorOpen, UsersRound, List } from "lucide-react"
 
 
 import {
@@ -23,6 +23,11 @@ const items = [
     title: "Carga de Stock",
     url: "/app/inventario",
     icon: Package,
+  },
+  {
+    title: "Lista de compras",
+    url: "/app/lista",
+    icon: List,
   },
   // {
   //   title: "Herramientas",

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -7,7 +8,7 @@ import { Label } from '@/app/components/ui/label';
 import { supabase } from '../lib/supabaseClient';
 
 const Medidas = [ "Select",
-  "Kg", "Mts", "Cms", "Caja", "Unidad", "Paquete", "Litro", "Gramo", "Pieza", "Bolsa", "Otro"
+  "Kg", "Mts", "Cms", "Cajas", "Unidades", "Paquetes", "Litros", "Gramos", "Piezas", "Bolsas", "Otros"
 ] as const;
 
 const schema = z.object({
@@ -23,6 +24,7 @@ const schema = z.object({
   description: z.string().nullable().optional(),
   unit: z.enum(Medidas),
   min_quantity: z.number().nullable().optional(),
+  max_quantity: z.number().nullable().optional(),
 });
 
 interface EditMaterialFormProps {
@@ -37,9 +39,10 @@ interface EditMaterialFormProps {
     manufactur?: string;
     barcode?: string;
     min_quantity?: number;
+    max_quantity?: number;
     hasQrCode?: boolean;
     description?: string;
-    unit: "Select" | "Kg" | "Mts" | "Cms" | "Caja" | "Unidad" | "Paquete" | "Litro" | "Gramo" | "Pieza" | "Bolsa" | "Otro";
+    unit: "Select" | "Kg" | "Mts" | "Cms" | "Cajas" | "Unidades" | "Paquetes" | "Litros" | "Gramos" | "Piezas" | "Bolsas" | "Otros";
   };
   onClose: () => void;
 }
@@ -60,8 +63,28 @@ function EditMaterialForm({ material, onClose }: EditMaterialFormProps) {
       description: material.description,
       unit: material.unit,
       min_quantity: material.min_quantity,
+      max_quantity: material.max_quantity,
     },
   });
+
+  // Reset form values when the incoming material prop changes
+  useEffect(() => {
+    form.reset({
+      name: material.name,
+      quantity: material.quantity,
+      weight: material.weight ?? null,
+      width: material.width ?? null,
+      height: material.height ?? null,
+      color: material.color ?? null,
+      manufactur: material.manufactur ?? null,
+      barcode: material.barcode ?? null,
+      hasQrCode: material.hasQrCode ?? null,
+      description: material.description ?? null,
+      unit: material.unit,
+      min_quantity: typeof material.min_quantity === 'number' ? material.min_quantity : null,
+      max_quantity: typeof material.max_quantity === 'number' ? material.max_quantity : null,
+    });
+  }, [material, form]);
 
   const onSubmit = async (values: z.infer<typeof schema>) => {
     try {
@@ -98,9 +121,10 @@ function EditMaterialForm({ material, onClose }: EditMaterialFormProps) {
     <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
       <Label htmlFor="name">Nombre del Material</Label>
       <Input id="name" {...form.register('name')} />
-
+      <div className="flex flex-col md:flex-row gap-4">
       <Label htmlFor="quantity">Cantidad</Label>
       <Input id="quantity" type="number" {...form.register('quantity', { valueAsNumber: true })} />
+     
 
       <Label htmlFor="unit">Unidad</Label>
       <select id="unit" {...form.register('unit')} className="border rounded p-2">
@@ -108,10 +132,45 @@ function EditMaterialForm({ material, onClose }: EditMaterialFormProps) {
           <option key={medida} value={medida}>{medida}</option>
         ))}
       </select>
-
-      <Label htmlFor="min_quantity" className="font-semibold px-4">Alerta de stock mínimo (opcional)</Label>
-      <Input id="min_quantity" type="number" step="1" min="0" {...form.register('min_quantity', { valueAsNumber: true })} placeholder="Ej: 5" />
-
+      </div>
+      <Label htmlFor="min_quantity">Alerta de stock mínimo (opcional)</Label>
+      <Input id="min_quantity" type="number"  min="0" {...form.register('min_quantity', { valueAsNumber: true })} />
+      
+      <Label htmlFor="max_quantity">Stock máximo sugerido (opcional)</Label>
+      <Input id="max_quantity" type="number"  min="0" {...form.register('max_quantity', { valueAsNumber: true })} />
+     
+     <div className="flex flex-col md:flex-row gap-4">
+      <Label htmlFor="barcode">Bar Code</Label>
+      <Input id="barcode" {...form.register('barcode', { setValueAs: (v)=> (v === "" || v === undefined ? null : v) })} />
+      
+      <div className="flex flex-2/3 items-center gap-3">
+       <Label>Tiene código QR</Label>
+        <Controller
+          name="hasQrCode"
+          control={form.control}
+          render={({ field }) => (
+            <button
+              type="button"
+              role="switch"
+              aria-checked={!!field.value}
+              onClick={() => field.onChange(!field.value)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                field.value ? 'bg-green-500' : 'bg-gray-300'
+              }`}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                  field.value ? 'translate-x-5' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          )}
+        />
+      </div>
+      </div>
+      <Label htmlFor="manufactur">Fabricante</Label>
+      <Input id="manufactur" {...form.register('manufactur')} />
+     
       <Label htmlFor="weight">Peso</Label>
       <Input
         id="weight"
@@ -141,39 +200,8 @@ function EditMaterialForm({ material, onClose }: EditMaterialFormProps) {
 
       <Label htmlFor="color">Color</Label>
       <Input id="color" {...form.register('color')} />
-
-      <Label htmlFor="manufactur">Fabricante</Label>
-      <Input id="manufactur" {...form.register('manufactur')} />
-
-      <Label htmlFor="barcode">Código de Barras</Label>
-      <Input id="barcode" {...form.register('barcode', { setValueAs: (v)=> (v === "" || v === undefined ? null : v) })} />
-
       
-      <div className="flex items-center gap-3">
-       <Label>Tiene código QR</Label>
-        <Controller
-          name="hasQrCode"
-          control={form.control}
-          render={({ field }) => (
-            <button
-              type="button"
-              role="switch"
-              aria-checked={!!field.value}
-              onClick={() => field.onChange(!field.value)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                field.value ? 'bg-green-500' : 'bg-gray-300'
-              }`}
-            >
-              <span
-                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-                  field.value ? 'translate-x-5' : 'translate-x-1'
-                }`}
-              />
-            </button>
-          )}
-        />
-        
-      </div>
+     
 
       <Label htmlFor="description">Descripción</Label>
       <Input id="description" {...form.register('description')} />

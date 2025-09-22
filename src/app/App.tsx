@@ -13,6 +13,7 @@ import { useParams as useReactRouterParams } from "react-router-dom";
 import { supabase } from "@/app/lib/supabaseClient";
 import { Movements } from "./components/page/Movements";
 import { Toaster } from "@/app/components/ui/sonner";
+import Shop from "@/app/components/page/Shop";
 
 
 export default function App() {
@@ -97,6 +98,13 @@ export default function App() {
                     element={
                             <ProtectedRoute>
                                 <Movements />
+                            </ProtectedRoute>
+                        }
+                    />
+                <Route path="/app/lista"
+                    element={
+                            <ProtectedRoute>
+                                <Shop />
                             </ProtectedRoute>
                         }
                     />

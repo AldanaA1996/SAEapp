@@ -7,6 +7,7 @@ import { Button } from "@/app/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
 import EditMaterialForm from "@/app/components/editMaterial";
 import { SquarePen, Eye, Trash2 } from "lucide-react";
+import downloadInventoryCsv from "@/app/components/csvDownload";
 
 // Types aligned with existing pages
 type Inventory = {
@@ -52,6 +53,7 @@ export default function SearchPage() {
     { type: "material" ; id: number; name: string } | null
   >(null);
 
+  
   useEffect(() => {
     const load = async () => {
       setLoading(true);
@@ -159,6 +161,7 @@ export default function SearchPage() {
     name: m.name,
     quantity: m.quantity,
     unit: (m.unit ?? 'Select') as any,
+    min_quantity: m.min_quantity ?? undefined,
     weight: m.weight ?? undefined,
     width: m.width ?? undefined,
     height: m.height ?? undefined,
@@ -194,6 +197,11 @@ export default function SearchPage() {
                 }
               )</span>
             </label>
+            <div className="flex items-center">
+              <Button variant="outline" onClick={downloadInventoryCsv}>
+                Descargar CSV
+              </Button>
+            </div>
           </div>
         </div>
 

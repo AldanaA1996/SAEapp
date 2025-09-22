@@ -9,7 +9,7 @@ import { useAuthenticationStore } from '../store/authentication';
 import { supabase } from '../lib/supabaseClient';
 
 const Medidas = [ "Select",
-  "Kg", "Mts", "Cms", "Caja", "Unidad", "Paquete", "Litro", "Gramo", "Pieza", "Bolsa", "Otro"
+  "Kg", "Mts", "Cms", "Cajas", "Unidades", "Paquetes", "Litros", "Gramos", "Piezas", "Bolsas", "Otros"
 ] as const;
 
 const schema = z.object({
@@ -19,6 +19,7 @@ const schema = z.object({
   description: z.string().optional(),
   manufactur: z.string().optional(),
   min_quantity: z.number().min(0).optional(),
+  max_quantity: z.number().min(0).optional(),
   barcode: z.string().optional(),
 });
 
@@ -53,6 +54,7 @@ function AddMaterialForm({ scannedBarcode }: AddMaterialFormProps) {
       description: '',
       manufactur: '',
       min_quantity: undefined,
+      max_quantity: undefined,
       barcode: '',
     },
   });
@@ -78,10 +80,11 @@ function AddMaterialForm({ scannedBarcode }: AddMaterialFormProps) {
         .update({
           quantity: newQty,
           unit: unitValue ?? existing.unit,
-          description: values.description ?? null,
-          manufactur: values.manufactur ?? null,
+          description: values.description && values.description.trim() !== '' ? values.description.trim() : null,
+          manufactur: values.manufactur && values.manufactur.trim() !== '' ? values.manufactur.trim() : null,
           min_quantity: values.min_quantity ?? (existing as any)?.min_quantity ?? null,
-          barcode: values.barcode ?? null,
+          max_quantity: values.max_quantity ?? (existing as any)?.max_quantity ?? null,
+          barcode: values.barcode && values.barcode.trim() !== '' ? values.barcode.trim() : null,
         })
         .eq('id', existing.id);
       if (upErr) throw upErr;
@@ -108,10 +111,11 @@ function AddMaterialForm({ scannedBarcode }: AddMaterialFormProps) {
             quantity: values.quantity,
             unit: unitValue,
             department_id: null,
-            description: values.description ?? null,
-            manufactur: values.manufactur ?? null,
+            description: values.description && values.description.trim() !== '' ? values.description.trim() : null,
+            manufactur: values.manufactur && values.manufactur.trim() !== '' ? values.manufactur.trim() : null,
             min_quantity: values.min_quantity ?? null,
-            barcode: values.barcode ?? null,
+            max_quantity: values.max_quantity ?? null,
+            barcode: values.barcode && values.barcode.trim() !== '' ? values.barcode.trim() : null,
             created_at: new Date().toISOString(),
           },
         ])
@@ -145,7 +149,7 @@ function AddMaterialForm({ scannedBarcode }: AddMaterialFormProps) {
  };
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4 w-full md:w-1/2">
+    <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4 w-full md:w-3/4">
       <Label htmlFor="name" className="font-semibold pt-2 px-4">Nombre del Material</Label>
       <div className="flex flex-col md:flex-row">
         <Input id="name" {...form.register('name')} placeholder="Ingrese el nombre del material" />
@@ -169,6 +173,18 @@ function AddMaterialForm({ scannedBarcode }: AddMaterialFormProps) {
         step="1"
         min="0"
         {...form.register('min_quantity', {
+          setValueAs: (v) => (v === '' || v === null || v === undefined ? undefined : Number(v)),
+        })}
+        placeholder="Ej: 5"
+      />
+
+      <Label htmlFor="max_quantity" className="font-semibold px-4">Stock máximo sugerido (opcional)</Label>
+      <Input
+        id="max_quantity"
+        type="number"
+        step="1"
+        min="0"
+        {...form.register('max_quantity', {
           setValueAs: (v) => (v === '' || v === null || v === undefined ? undefined : Number(v)),
         })}
         placeholder="Ej: 5"

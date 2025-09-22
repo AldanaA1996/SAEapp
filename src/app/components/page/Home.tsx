@@ -247,7 +247,7 @@ export default function Home() {
         <h1 className="text-xl font-semibold mb-4">Movimientos diarios de ingresos y egresos</h1>
         <p>En esta sección puedes registrar los movimientos diarios de ingresos y egresos de elementos ya cargados.</p>
 
-        <Tabs defaultValue="egreso" className="w-full md:w-2/3 py-4 px-2">
+        <Tabs defaultValue="egreso" className="w-full md:w-3/4 py-4 px-2">
           <TabsList className="w-full flex justify-center mb-2">
             <TabsTrigger value="egreso">Egreso</TabsTrigger>
             <TabsTrigger value="ingreso">Ingreso</TabsTrigger>
