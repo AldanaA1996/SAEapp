@@ -5,41 +5,24 @@ import { Label } from "@/app/components/ui/label";
 import { Input } from "@/app/components/ui/input";
 import { Button } from "@/app/components/ui/button";
 import { supabase } from "@/app/lib/supabaseClient";
-import { useAuthenticationStore } from "@/app/store/authentication";
-// import BarcodeScanner from "@/app/components/scaneer"; // scanner deshabilitado temporalmente
 import { toast } from "sonner";
+import { useAuthenticationStore } from "@/app/store/authentication";
+import { TriangleAlert } from "lucide-react";
+// import BarcodeScanner from "@/app/components/scaneer"; // scanner deshabilitado temporalmente
 
 export default function Home() {
   const user = useAuthenticationStore((s) => s.user);
-
-  const Medidas = useMemo(
-    () => [
-      "Select",
-      "Kg",
-      "Mts",
-      "Cms",
-      "Caja",
-      "Unidad",
-      "Paquete",
-      "Litro",
-      "Gramo",
-      "Pieza",
-      "Bolsa",
-      "Otro",
-    ] as const,
-    []
-  );
-
+ 
   const [materials, setMaterials] = useState<
-    Array<{ id: number; name: string; quantity: number; unit: string | null; department_id?: string | null; barcode?: string | null; min_quantity?: number | null }>
+    Array<{ id: number; name: string; quantity: number; unit: string | null; department_id?: string | null; manufactur?: string | null; min_quantity?: number | null }>
   >([]);
   const [alerted, setAlerted] = useState<Set<number>>(new Set());
 
   // Ingreso state
   const [inName, setInName] = useState<string>("");
   const [inQty, setInQty] = useState<string>("");
-  const [inUnit, setInUnit] = useState<string>("Select");
-  const [inBarcode, setInBarcode] = useState<string>("");
+  
+  // const [inBarcode, setInBarcode] = useState<string>("");
   const [inDescription, setInDescription] = useState<string>("");
   const [loadingIn, setLoadingIn] = useState<boolean>(false);
   const inQtyRef = useRef<HTMLInputElement | null>(null);
@@ -50,11 +33,36 @@ export default function Home() {
   const [loadingOut, setLoadingOut] = useState<boolean>(false);
   const outQtyRef = useRef<HTMLInputElement | null>(null);
 
+   const getDbUserId = async (): Promise<number | null> => {
+      if (!user?.id) return null;
+  
+      const { data: dbUser, error } = await supabase
+        .from("user")
+        .select("id")
+        .eq("userAuth", user.id) // authUser.id = UUID de Auth
+        .maybeSingle();
+  
+      if (error) {
+        console.error("Error buscando user.id:", error);
+        toast.error("Error buscando usuario en la base");
+        return null;
+      }
+  
+      if (!dbUser) {
+        toast.error("El usuario logueado no está vinculado en la tabla user");
+        return null;
+      }
+  
+      return dbUser.id;
+    };
+ 
+  
   // Unique names for the ingreso datalist
   const uniqueMaterialNames = useMemo(() => {
     const set = new Set<string>();
     materials.forEach((m) => {
       if (m.name) set.add(m.name);
+      if (m.manufactur) set.add(m.manufactur);
     });
     return Array.from(set).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
   }, [materials]);
@@ -63,17 +71,17 @@ export default function Home() {
   const sortedMaterials = useMemo(() => {
     return [...materials].sort((a, b) => a.name.localeCompare(b.name, "es", { sensitivity: "base" }));
   }, [materials]);
-
+  
   useEffect(() => {
     const fetchInitial = async () => {
-      const { data: mats } = await supabase.from("inventory").select("id,name,quantity,unit,barcode,min_quantity");
+      const { data: mats } = await supabase.from("inventory").select("id,name,quantity,manufactur,min_quantity");
       setMaterials((mats as any) || []);
     };
     fetchInitial();
   }, []);
 
   const refreshMaterials = async () => {
-    const { data } = await supabase.from("inventory").select("id,name,quantity,unit,barcode,min_quantity");
+    const { data } = await supabase.from("inventory").select("id,name,quantity,manufactur,min_quantity");
     setMaterials((data as any) || []);
   };
 
@@ -86,8 +94,11 @@ export default function Home() {
         const min = typeof m.min_quantity === 'number' ? m.min_quantity : undefined;
         if (min !== undefined && min >= 0 && typeof m.quantity === 'number' && m.quantity <= min) {
           if (!next.has(m.id)) {
-            toast.warning(`Stock bajo: ${m.name}`, {
-              description: `Cantidad actual: ${m.quantity}${m.unit ? ' ' + m.unit : ''}. Mínimo definido: ${min}.`,
+            
+            toast.warning(` Stock bajo: ${m.name} ${m.manufactur}`, {
+              description: ` Cantidad actual: ${m.quantity}${m.unit ? ' ' + m.unit : ''}. Mínimo definido: ${min}.`,
+              duration: 3000,
+              icon: <TriangleAlert /> 
             });
             next.add(m.id);
           }
@@ -111,8 +122,8 @@ export default function Home() {
         // Update quantity and optionally update metadata
         const newQty = (existing.quantity || 0) + qty;
         const updatePayload: any = { quantity: newQty };
-        if (inUnit && inUnit !== "Select") updatePayload.unit = inUnit;
-        if (inBarcode) updatePayload.barcode = inBarcode;
+       
+        // if (inBarcode) updatePayload.barcode = inBarcode;
         if (inDescription) updatePayload.description = inDescription;
 
         const { error: upErr } = await supabase.from("inventory").update(updatePayload).eq("id", existing.id);
@@ -121,10 +132,12 @@ export default function Home() {
         // Log activity with delta (inQty)
         const horaActual = new Date().toLocaleTimeString("en-GB");
         const createdBy = user?.id ?? null;
+        const userCreatorId = await getDbUserId();
         await supabase.from("activity").insert([
           {
             name: existing.id,
             movementType: "entry",
+            user_creator: userCreatorId,
             created_by: createdBy,
             created_at: horaActual,
             created_date: new Date().toISOString(),
@@ -139,9 +152,8 @@ export default function Home() {
             {
               name: inName.trim(),
               quantity: qty,
-              unit: inUnit && inUnit !== "Select" ? inUnit : null,
-              department_id: null,
-              barcode: inBarcode || null,
+              
+              // barcode: inBarcode || null,
               description: inDescription || null,
               created_at: new Date().toISOString(),
             },
@@ -154,10 +166,12 @@ export default function Home() {
         const materialId = (inserted as any)?.id;
         const horaActual = new Date().toLocaleTimeString("en-GB");
         const createdBy = user?.id ?? null;
+        const userCreatorId = await getDbUserId();
         await supabase.from("activity").insert([
           {
             name: materialId,
             movementType: "entry",
+            user_creator: userCreatorId,
             created_by: createdBy,
             created_at: horaActual,
             created_date: new Date().toISOString(),
@@ -169,18 +183,18 @@ export default function Home() {
       // Reset inputs and refresh
       setInName("");
       setInQty("");
-      setInUnit("Select");
-      setInBarcode("");
+      
+      // setInBarcode("");
       setInDescription("");
       await refreshMaterials();
-      // After refresh, show alert if still under min
-      const m = (materials.find((x) => x.name.toLowerCase() === inName.trim().toLowerCase()) ?? null) as any;
-      if (m && typeof m.min_quantity === 'number' && m.quantity <= m.min_quantity && !alerted.has(m.id)) {
-        toast.warning(`Stock bajo: ${m.name}`, {
-          description: `Cantidad actual: ${m.quantity}${m.unit ? ' ' + m.unit : ''}. Mínimo definido: ${m.min_quantity}.`,
-        });
-        setAlerted((s) => new Set(s).add(m.id));
-      }
+      // // After refresh, show alert if still under min
+      // const m = (materials.find((x) => x.name.toLowerCase() === inName.trim().toLowerCase()) ?? null) as any;
+      // if (m && typeof m.min_quantity === 'number' && m.quantity <= m.min_quantity && !alerted.has(m.id)) {
+      //   toast.warning(`Stock bajo: ${m.name} ${m.manufactur}`, {
+      //     description: `Cantidad actual: ${m.quantity}${m.unit ? ' ' + m.unit : ''}. Mínimo definido: ${m.min_quantity}.`,
+      //   });
+      //   setAlerted((s) => new Set(s).add(m.id));
+      // }
     } catch (err) {
       console.error("Error en ingreso:", err);
     } finally {
@@ -209,10 +223,12 @@ export default function Home() {
       // Log activity with delta (outQty)
       const horaActual = new Date().toLocaleTimeString("en-GB");
       const createdBy = user?.id ?? null;
+      const userCreatorId = await getDbUserId();
       await supabase.from("activity").insert([
         {
           name: material.id,
           movementType: "exit",
+          user_creator: userCreatorId,
           created_by: createdBy,
           created_at: horaActual,
           created_date: new Date().toISOString(),
@@ -224,12 +240,12 @@ export default function Home() {
       setOutMaterialId("");
       await refreshMaterials();
       // Alert if new stock is below defined minimum
-      if (material && typeof material.min_quantity === 'number' && newQty <= material.min_quantity && !alerted.has(material.id)) {
-        toast.warning(`Stock bajo: ${material.name}`, {
-          description: `Cantidad actual: ${newQty}${material.unit ? ' ' + material.unit : ''}. Mínimo definido: ${material.min_quantity}.`,
-        });
-        setAlerted((s) => new Set(s).add(material.id));
-      }
+      // if (material && typeof material.min_quantity === 'number' && newQty <= material.min_quantity && !alerted.has(material.id)) {
+      //   toast.warning(`Stock bajo: ${material.name} ${material.manufactur}`, {
+      //     description: `Cantidad actual: ${newQty}${material.unit ? ' ' + material.unit : ''}. Mínimo definido: ${material.min_quantity}.`,
+      //   });
+      //   setAlerted((s) => new Set(s).add(material.id));
+      // }
     } catch (err) {
       console.error("Error en egreso:", err);
     } finally {
@@ -264,17 +280,17 @@ export default function Home() {
                 </div>
               </div>
               **/}
-              <div className="col-span-1 md:col-span-2">
+              <div className="col-span-1 md:col-span-2 px-2 gap-2">
                 <div className="flex flex-col md:flex-row gap-2">
                   <select
-                    className="border rounded p-2 w-full md:w-1/2"
-                    value={uniqueMaterialNames.includes(inName) ? inName : ""}
+                    className="border rounded p-2 w-full md:w-1/2 px-2" 
+                    value={uniqueMaterialNames.includes(inName) ? inName : "" }
                     onChange={(e) => setInName(e.target.value)}
                   >
                     <option value="">Selecciona un objeto existente</option>
                     {sortedMaterials.map((m) => (
                       <option key={m.id} value={m.name}>
-                        {m.name}
+                        {m.name} {m.manufactur}
                       </option>
                     ))}
                   </select>
@@ -290,17 +306,6 @@ export default function Home() {
                   min={0}
                   ref={inQtyRef}
                 />
-              </div>
-
-              <div>
-                <Label>Unidad</Label>
-                <select className="border rounded p-2 w-full" value={inUnit} onChange={(e) => setInUnit(e.target.value)}>
-                  {Medidas.map((u) => (
-                    <option key={u} value={u}>
-                      {u}
-                    </option>
-                  ))}
-                </select>
               </div>
 
               <div>
@@ -337,7 +342,7 @@ export default function Home() {
                   <option value="">Selecciona un material</option>
                   {sortedMaterials.map((m) => (
                     <option key={m.id} value={m.id}>
-                      {m.name} {typeof m.quantity === "number" ? `(Stock: ${m.quantity})` : ""}
+                      {m.name} - {m.manufactur} {typeof m.quantity === "number" ? `(Stock: ${m.quantity})` : ""}
                     </option>
                   ))}
                 </select>

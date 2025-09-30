@@ -1,7 +1,9 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+/* Sonner CSS import removed due to package exports not exposing a CSS entry in this version. */
 
 @custom-variant dark (&:is(.dark *));
+
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
@@ -120,19 +122,10 @@
 }
 
 /* Sonner toaster fixes: ensure above sidebar and sticky headers */
-[data-sonner-toaster] {
-  position: fixed !important;
-  z-index: 2147483647 !important; /* on top of everything */
-  pointer-events: none; /* container doesn't block clicks */
-}
-[data-sonner-toaster][data-y-position="top"] { top: 12px !important; }
-[data-sonner-toaster][data-y-position="bottom"] { bottom: 12px !important; }
-[data-sonner-toaster][data-x-position="right"] { right: 12px !important; }
-[data-sonner-toaster][data-x-position="left"] { left: 12px !important; }
-[data-sonner-toaster] [data-sonner-toast] { pointer-events: auto; }
+
 
 /* Minimal Sonner base styles (since package CSS isn't available) */
-[data-sonner-toast] {
+/* [data-sonner-toast] {
   background: var(--popover);
   color: var(--popover-foreground);
   border: 1px solid var(--border);
@@ -167,7 +160,7 @@
 [data-sonner-toast] [data-close-button]:hover { opacity: 1; }
 
 /* Variants */
-[data-sonner-toast][data-type="success"] {
+/* [data-sonner-toast][data-type="success"] {
   border-color: rgba(16, 185, 129, 0.35);
   background: color-mix(in oklch, var(--popover), oklch(0.929 0.013 155) 12%);
 }
@@ -178,10 +171,10 @@
 [data-sonner-toast][data-type="error"] {
   border-color: rgba(239, 68, 68, 0.35);
   background: color-mix(in oklch, var(--popover), oklch(0.92 0.12 30) 12%);
-}
+} */ 
 
 /* Progress bar */
-[data-sonner-toast] [data-sonner-progress] {
+/* [data-sonner-toast] [data-sonner-progress] {
   height: 3px;
   border-radius: 999px;
   background: var(--border);
@@ -190,4 +183,4 @@
 }
 [data-sonner-toast] [data-sonner-progress] > div {
   background: var(--primary);
-}
+} */

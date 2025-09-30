@@ -79,7 +79,7 @@ export default function Login() {
         <CardFooter className="flex flex-col items-center justify-center">
           <div className="flex justify-between pb-4 w-full">
             <p className="text-sm text-gray-500">¿No tienes una cuenta?</p>
-            <a className="text-sm text-blue-400" href="/register">
+            <a className="text-sm text-blue-400" href="/app/signup">
               Regístrate
             </a>
           </div>

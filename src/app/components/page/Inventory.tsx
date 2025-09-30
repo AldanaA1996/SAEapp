@@ -1,11 +1,9 @@
 
 import Layout from "@/app/components/layout";
 import AddMaterialForm from "@/app/components/addMaterial-form";
-import BarcodeScanner from "@/app/components/scaneer";
-import { useState } from "react";
+import { Toaster } from "@/app/components/ui/sonner";
 
 export function Inventario() {
-  const [scanned, setScanned] = useState<string>("");
   return (
     <Layout>
       <div className="flex flex-col h-screen w-[100%] self-center gap-4 m-2">
@@ -16,11 +14,13 @@ export function Inventario() {
           {scanned && (
             <p className="text-sm text-gray-600 mt-2">Código detectado: <span className="font-mono">{scanned}</span></p>
           )} */}
-          <AddMaterialForm scannedBarcode={scanned} />
+          <AddMaterialForm  />
         </div>
 
         
       </div>
+
+      
     </Layout>
   );
 }

@@ -1,10 +1,14 @@
+---
+// import { Toaster } from "@/app/components/ui/sonner";
+---
+
 <body
 	class="absolute w-full min-h-screen overflow-x-hidden"
 >
 	<main class="flex flex-col h-[100%] w-full max-w-md mx-auto">
 		<slot />
 	</main>
-
+	
 	<script>
 		// This is a hack to get vite-plugin-pwa to generate a sw.js file.
 		// Do not remove this script tag.
@@ -35,4 +39,5 @@
 			})
 		}
 	</script>
+	<!-- <Toaster richColors position="top-center" /> -->
 </body>
