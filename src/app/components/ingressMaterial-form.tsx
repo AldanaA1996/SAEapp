@@ -11,6 +11,7 @@ import { Label } from '@/app/components/ui/label';
 import { useAuthenticationStore } from '../store/authentication';
 import { supabase } from '../lib/supabaseClient';
 import { useSearch } from '../hooks/use-material-search';
+import { toast } from 'sonner';
 
 const schema = z.object({
   materialId: z.string().min(1, 'Debes seleccionar un material.'),
@@ -23,6 +24,7 @@ export type Material = {
   quantity: number;
   unit: string; 
   location: string; 
+  manufactur: string;
 };
 
 function IngressMaterialForm() {
@@ -60,19 +62,19 @@ function IngressMaterialForm() {
             created_at: new Date().toLocaleTimeString('en-GB'),
             created_date: new Date().toISOString(),
         }]);
-        
-        const alertMessage = `¡Ingreso exitoso!\n\nMaterial: ${selectedMaterial.name}\nCantidad Agregada: ${values.quantity}\nNuevo Stock: ${newQuantity}`;
-        alert(alertMessage);
-        console.log(`INVENTARIO ACTUALIZADO: ${newQuantity}`);
 
         form.reset();
         setSearchTerm('');
         setSelectedMaterial(null);
 
+        toast.success('Egreso registrado exitosamente', {
+                description: `Material: ${selectedMaterial.name} | Cantidad: ${values.quantity} | Nuevo stock: ${newQuantity}`,
+        });
         
     }catch (err: any) {
       console.error("Error al ingresar el material:", err);
       setError("Ocurrió un error al procesar el ingreso. Intenta de nuevo."); 
+      toast.error("Error al registrar el ingreso");
   };
 
     } 
@@ -94,15 +96,15 @@ function IngressMaterialForm() {
       <form onSubmit={handleFormSubmit} className="flex flex-col gap-4 relative">
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="search">Buscar Material para Sumar Stock</Label>
+            <Label htmlFor="search">Buscar material para sumar stock</Label>
             <Input id="search" value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); if(selectedMaterial) setSelectedMaterial(null); form.setValue('materialId', '', { shouldValidate: true }); }} placeholder="Escribe para buscar..." autoComplete="off" />
             {materials.length > 0 && searchTerm !== selectedMaterial?.name && (
               <ul className="absolute top-full left-0 right-0 z-10 bg-white border border-gray-300 rounded-md shadow-lg mt-1 max-h-60 overflow-y-auto">
-                {materials.map((material) => (<li key={material.id} className="px-4 py-2 hover:bg-gray-100 cursor-pointer" onClick={() => handleSelectMaterial(material)}>{material.name} (Stock: {material.quantity})</li>))}
+                {materials.map((material) => (<li key={material.id} className="px-4 py-2 hover:bg-gray-100 cursor-pointer" onClick={() => handleSelectMaterial(material)}>{material.name}, {material.manufactur} (Disp: {material.quantity} {material.unit}), {material.location})</li>))}
               </ul>
             )}
             {isLoading && <p className="text-sm text-gray-500">Buscando...</p>}
-            {selectedMaterial && <p className="text-sm p-2 mt-2 bg-blue-50 border border-blue-200 rounded-md"><span className="font-semibold">Seleccionado:</span> {selectedMaterial.name}</p>}
+            {selectedMaterial && <p className="text-sm p-2 mt-2 bg-blue-50 border border-blue-200 rounded-md"><span className="font-semibold">Seleccionado:</span> {selectedMaterial.name}, {selectedMaterial.manufactur} (Disp: {selectedMaterial.quantity} {selectedMaterial.unit}), {selectedMaterial.location}</p>}
           </div>
 
         <div className="flex flex-col gap-2">
