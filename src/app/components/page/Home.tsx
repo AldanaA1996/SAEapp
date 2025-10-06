@@ -11,6 +11,23 @@ import { TriangleAlert } from "lucide-react";
 // import BarcodeScanner from "@/app/components/scaneer"; // scanner deshabilitado temporalmente
 import EgressMaterialForm from "@/app/components/egressMaterial-form";
 
+const Medidas = [
+  "Select",
+  "Kg",
+  "Mts",
+  "Cms",
+  "Cajas",
+  "Unidades",
+  "Paquetes",
+  "Litros",
+  "Gramos",
+  "Piezas",
+  "Bolsas",
+  "Otros",
+] as const;
+
+const Ubicaciones = ["Select", "Pañol", "Taller", "Contenedor", "Ferreteria"] as const;
+
 export default function Home() {
   const user = useAuthenticationStore((s) => s.user);
  
@@ -215,6 +232,7 @@ export default function Home() {
       // setInBarcode("");
       setInDescription("");
       await refreshMaterials();
+      toast.success("Ingreso registrado exitosamente");
       // // After refresh, show alert if still under min
       // const m = (materials.find((x) => x.name.toLowerCase() === inName.trim().toLowerCase()) ?? null) as any;
       // if (m && typeof m.min_quantity === 'number' && m.quantity <= m.min_quantity && !alerted.has(m.id)) {
@@ -225,6 +243,7 @@ export default function Home() {
       // }
     } catch (err) {
       console.error("Error en ingreso:", err);
+      toast.error("Error al registrar el ingreso. Intenta nuevamente.");
     } finally {
       setLoadingIn(false);
     }
@@ -305,13 +324,23 @@ export default function Home() {
                 </div> */}
               </div>
               
-              <div className="col-span-1 md:col-span-2">
-                <div className="flex flex-col md:flex-row gap-2">
+              <div className="col-span-1 md:col-span-2 px-2 gap-2">
+                <Label>Material</Label>
+                <div className="flex flex-col gap-2">
+                  <Input
+                    placeholder="Buscar material..."
+                    value={inSearch}
+                    onChange={(e) => setInSearch(e.target.value)}
+                  />
                   <select
                     title="materiales"
-                    className="border rounded p-2 w-full md:w-1/2"
-                    value={uniqueMaterialNames.includes(inName) ? inName : ""}
-                    onChange={(e) => setInName(e.target.value)}
+                    className="border rounded p-2 w-full"
+                    size={5}
+                    value={inName}
+                    onChange={(e) => {
+                      setInName(e.target.value);
+                      setInSearch("");
+                    }}
                   >
                     <option value="">Selecciona un objeto existente</option>
                     {filteredIngresoMaterials.map((m) => (
@@ -334,16 +363,16 @@ export default function Home() {
                 />
               </div>
 
-              <div>
-                <Label>Unidad</Label>
+              {/* <div>
+                {/* <Label>Unidad</Label>
                 <select title = "medidas" className="border rounded p-2 w-full" value={inUnit} onChange={(e) => setInUnit(e.target.value)}>
                   {Medidas.map((u) => (
                     <option key={u} value={u}>
                       {u}
                     </option>
                   ))}
-                </select>
-              </div>
+                </select> */}
+              {/* </div>  */}
 
               <div>
                 <Label>Descripción (opcional)</Label>

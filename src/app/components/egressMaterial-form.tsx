@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { toast } from 'sonner';
 
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
@@ -13,167 +13,226 @@ import { supabase } from '../lib/supabaseClient';
 import { useSearch } from '../hooks/use-material-search';
 
 const schema = z.object({
-
-materialId: z.string().min(1, 'Debes seleccionar un material.'),
-quantity: z.number().min(1, 'La cantidad a retirar debe ser mayor a 0.'),
-
+  materialId: z.string().min(1, 'Debes seleccionar un material.'),
+  quantity: z.number().min(1, 'La cantidad a retirar debe ser mayor a 0.'),
 });
 
 export type Material = {
-id: string;
-name: string;
-quantity: number;
-unit: string;
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
 };
 
 function EgressMaterialForm() {
+  const { materials, isLoading, setSearchTerm, searchTerm, setMaterials } = useSearch();
+  const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-const {materials, isLoading, setSearchTerm, searchTerm, setMaterials } = useSearch();
-const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
-const [error, setError] = useState<string | null>(null);
+  const user = useAuthenticationStore((state) => state.user);
 
-const user = useAuthenticationStore((state) => state.user);
+  const form = useForm<z.infer<typeof schema>>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      materialId: '',
+      quantity: 1,
+    },
+  });
 
-const form = useForm<z.infer<typeof schema>>({
+  const getDbUserId = async (): Promise<number | null> => {
+    if (!user?.id) return null;
 
-resolver: zodResolver(schema),
-defaultValues: {
-materialId: '',
-quantity: 0,
-},
-});
+    const { data: dbUser, error } = await supabase
+      .from("user")
+      .select("id")
+      .eq("userAuth", user.id)
+      .maybeSingle();
 
-const onSubmit = async (values: z.infer<typeof schema>) => {
-setError(null);
-if (!selectedMaterial) {
-setError("Por favor, selecciona un material de la lista.");
-return;
-}
+    if (error) {
+      console.error("Error buscando user.id:", error);
+      toast.error("Error buscando usuario en la base");
+      return null;
+    }
 
-if (values.quantity > selectedMaterial.quantity) {
-setError(`No puedes retirar más de la cantidad disponible (${selectedMaterial.quantity}).`);
-form.setError("quantity", { message: "Cantidad excede el stock." });
-return;
-}
+    if (!dbUser) {
+      toast.error("El usuario logueado no está vinculado en la tabla user");
+      return null;
+    }
 
-try {
-const newQuantity = selectedMaterial.quantity - values.quantity;
+    return dbUser.id;
+  };
 
-const { error: updateError } = await supabase
-.from('inventory')
-.update({ quantity: newQuantity })
-.eq('id', selectedMaterial.id);
-if (updateError) throw updateError;
+  const onSubmit = async (values: z.infer<typeof schema>) => {
+    console.log('onSubmit called with values:', values);
+    setError(null);
+    
+    if (!selectedMaterial) {
+      setError("Por favor, selecciona un material de la lista.");
+      toast.error("Por favor, selecciona un material de la lista.");
+      return;
+    }
 
-const { error: activityError } = await supabase.from("activity").insert([
+    if (!values.quantity || values.quantity <= 0 || isNaN(values.quantity)) {
+      setError("Debes ingresar una cantidad válida mayor a 0.");
+      toast.error("Cantidad inválida");
+      return;
+    }
 
-{
-name: selectedMaterial.id,
-movementType: 'exit',
-quantity: values.quantity,
-created_by: user?.id,
-created_at: new Date().toLocaleTimeString('en-GB'),
-created_date: new Date().toISOString(),
-},
-]);
+    if (values.quantity > selectedMaterial.quantity) {
+      setError(`No puedes retirar más de la cantidad disponible (${selectedMaterial.quantity}).`);
+      form.setError("quantity", { message: "Cantidad excede el stock." });
+      toast.error("Cantidad excede el stock disponible");
+      return;
+    }
 
-if (activityError) throw activityError;
+    try {
+      const newQuantity = selectedMaterial.quantity - values.quantity;
 
-form.reset();
-setSearchTerm('');
-setSelectedMaterial(null);
+      const { error: updateError } = await supabase
+        .from('inventory')
+        .update({ quantity: newQuantity })
+        .eq('id', selectedMaterial.id);
+      
+      if (updateError) throw updateError;
 
+      // Registrar actividad con formato consistente
+      const now = new Date();
+      const horaActual = now.toLocaleTimeString("es-AR", { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const fechaActual = now.toLocaleDateString("es-AR", { year: 'numeric', month: '2-digit', day: '2-digit' }).split('/').reverse().join('-') + 'T' + now.toLocaleTimeString("es-AR", { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const createdBy = user?.id ?? null;
+      const userCreatorId = await getDbUserId();
 
+      const { error: activityError } = await supabase.from("activity").insert([
+        {
+          name: selectedMaterial.id,
+          movementType: 'exit',
+          user_creator: userCreatorId,
+          created_by: createdBy,
+          created_at: horaActual,
+          created_date: fechaActual,
+          quantity: values.quantity,
+        },
+      ]);
 
-alert(`¡Retiro exitoso!\n\nMaterial: ${selectedMaterial.name}\nCantidad Retirada: ${values.quantity}\nNuevo Stock: ${newQuantity}`);
-// Para demostrar que la base de datos simulada se actualizó, lo mostramos en la consola.
-console.log(`INVENTARIO SIMULADO ACTUALIZADO: ${newQuantity}` );
-} catch (err: any)
+      if (activityError) throw activityError;
 
-{
-console.error("Error al retirar el material:", err);
-setError("Ocurrió un error al procesar el egreso. Intenta de nuevo.");
-}
-};
+      // Resetear formulario
+      form.reset();
+      setSearchTerm('');
+      setSelectedMaterial(null);
 
-const handleSelectMaterial = (material: Material) => {
-setSelectedMaterial(material);
-form.setValue('materialId', material.id, { shouldValidate: true });
-setSearchTerm(material.name);
-setMaterials([]);
-}
+      // Notificación de éxito
+      toast.success('Egreso registrado exitosamente', {
+        description: `Material: ${selectedMaterial.name} | Cantidad: ${values.quantity} | Nuevo stock: ${newQuantity}`,
+      });
+    } catch (err: any) {
+      console.error("Error al retirar el material:", err);
+      setError("Ocurrió un error al procesar el egreso. Intenta de nuevo.");
+      toast.error("Error al registrar el egreso");
+    }
+  };
 
-return (
+  const handleSelectMaterial = (material: Material) => {
+    setSelectedMaterial(material);
+    form.setValue('materialId', material.id, { shouldValidate: true });
+    setSearchTerm(material.name);
+    setMaterials([]);
+  };
 
-<div className="p-4 bg-gray-50 rounded-lg shadow-md">
-<form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4 relative">
-<div className="flex flex-col gap-2">
-<Label htmlFor="search">Buscar Material</Label>
-<Input
-id="search"
-value={searchTerm}
-onChange={(e) => {
-setSearchTerm(e.target.value);
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log('Form submitted via handleFormSubmit');
+    const formData = form.getValues();
+    console.log('Form data:', formData);
+    onSubmit(formData);
+  };
 
-if(selectedMaterial) setSelectedMaterial(null);
+  return (
+    <div className="p-4 bg-gray-50 rounded-lg shadow-md">
+      <form onSubmit={handleFormSubmit} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2 relative">
+          <Label htmlFor="search">Buscar Material</Label>
+          <Input
+            id="search"
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              if (selectedMaterial) setSelectedMaterial(null);
+              form.setValue('materialId', '', { shouldValidate: true });
+            }}
+            placeholder="Escribe para buscar..."
+            autoComplete="off"
+          />
 
-form.setValue('materialId', '', { shouldValidate: true });
-}}
+          {materials.length > 0 && (
+            <ul className="absolute top-full left-0 right-0 z-50 bg-white border border-gray-300 rounded-md shadow-lg mt-1 max-h-60 overflow-y-auto">
+              {materials.map((material: Material) => (
+                <li
+                  key={material.id}
+                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                  onClick={() => handleSelectMaterial(material)}
+                >
+                  {material.name} (Disp: {material.quantity} {material.unit})
+                </li>
+              ))}
+            </ul>
+          )}
+          {isLoading && <p className="text-sm text-gray-500">Buscando...</p>}
+        </div>
 
-placeholder="Escribe para buscar..."
+        {selectedMaterial && (
+          <>
+            <p className="text-sm p-2 bg-blue-50 border border-blue-200 rounded-md">
+              <span className="font-semibold">Seleccionado:</span> {selectedMaterial.name} <br />
+              <span className="font-semibold">Cantidad Disponible:</span> {selectedMaterial.quantity} {selectedMaterial.unit}
+            </p>
 
-autoComplete="off"
+            <div>
+              <Label htmlFor="quantity">Cantidad a Retirar</Label>
+              <Input
+                id="quantity"
+                type="number"
+                {...form.register('quantity', { 
+                  valueAsNumber: true,
+                  required: "La cantidad es requerida",
+                  min: { value: 1, message: "La cantidad debe ser mayor a 0" }
+                })}
+                placeholder="Ingresa la cantidad"
+                max={selectedMaterial.quantity}
+                min="1"
+                step="1"
+              />
+              {form.formState.errors.quantity && (
+                <p className="text-red-500 text-sm">{form.formState.errors.quantity.message}</p>
+              )}
+            </div>
+          </>
+        )}
 
-/>
-
-{materials.length > 0 && (
-<ul className="absolute top-full left-0 right-0 z-10 bg-white border border-gray-300 rounded-md shadow-lg mt-1 max-h-60 overflow-y-auto">
-{materials.map((material: Material) => (
-
-<li
-key={material.id}
-className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-onClick={() => handleSelectMaterial(material)}
->
-
-{material.name} (Disp: {material.quantity} {material.unit})
-</li>
-))}
-
-</ul>
-)}
-{isLoading && <p className="text-sm text-gray-500">Buscando...</p>}
-</div>
-
-{selectedMaterial && (
-
-<>
-<p className="text-sm p-2 bg-blue-50 border border-blue-200 rounded-md">
-<span className="font-semibold">Seleccionado:</span> {selectedMaterial.name} <br />
-<span className="font-semibold">Cantidad Disponible:</span> {selectedMaterial.quantity} {selectedMaterial.unit}
-</p>
-
-<Label htmlFor="quantity">Cantidad a Retirar</Label>
-
-<Input
-id="quantity"
-type="number"
-{...form.register('quantity', { valueAsNumber: true })}
-placeholder="Cantidad"
-max={selectedMaterial.quantity}
-min="1"
-/>
-{form.formState.errors.quantity && <p className="text-red-500 text-sm">{form.formState.errors.quantity.message}</p>}
-</>
-)}
-
-{error && <p className="text-red-500 text-sm bg-red-50 p-2 rounded-md">{error}</p>}
-<Button type="submit" disabled={!selectedMaterial || form.formState.isSubmitting}>
-Retirar Material
-</Button>
-</form>
-</div>
-);
+        {error && <p className="text-red-500 text-sm bg-red-50 p-2 rounded-md">{error}</p>}
+        
+        {/* Debug info
+        {process.env.NODE_ENV === 'development' && (
+          <div className="text-xs text-gray-500">
+            <p>Material seleccionado: {selectedMaterial ? 'Sí' : 'No'}</p>
+            <p>Form valid: {form.formState.isValid ? 'Sí' : 'No'}</p>
+            <p>Submitting: {form.formState.isSubmitting ? 'Sí' : 'No'}</p>
+            {Object.keys(form.formState.errors).length > 0 && (
+              <p className="text-red-500">Errores: {JSON.stringify(form.formState.errors)}</p>
+            )}
+          </div>
+        )} */}
+        
+        <Button 
+          type="submit" 
+          disabled={!selectedMaterial || form.formState.isSubmitting}
+          onClick={() => console.log('Button clicked, selectedMaterial:', selectedMaterial)}
+        >
+          {form.formState.isSubmitting ? "Procesando..." : "Retirar Material"}
+        </Button>
+      </form>
+    </div>
+  );
 }
 
 export default EgressMaterialForm;
