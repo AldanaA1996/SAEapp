@@ -352,7 +352,7 @@ export default function Home() {
                 </select> */}
               {/* </div>  */}
 
-              <div>
+              {/* <div>
                 <Label>Descripción (opcional)</Label>
                 <Input value={inDescription} onChange={(e) => setInDescription(e.target.value)} />
               </div>
