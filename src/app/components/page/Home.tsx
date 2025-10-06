@@ -8,6 +8,7 @@ import { supabase } from "@/app/lib/supabaseClient";
 import { useAuthenticationStore } from "@/app/store/authentication";
 // import BarcodeScanner from "@/app/components/scaneer"; // scanner deshabilitado temporalmente
 import { toast } from "sonner";
+import EgressMaterialForm from "@/app/components/egressMaterial-form";
 
 export default function Home() {
   const user = useAuthenticationStore((s) => s.user);
@@ -188,54 +189,54 @@ export default function Home() {
     }
   };
 
-  const handleEgreso = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!outMaterialId) return;
-    const qty = Number(outQty);
-    if (!isFinite(qty) || qty <= 0) return;
-    setLoadingOut(true);
-    try {
-      const material = materials.find((m) => m.id === outMaterialId);
-      if (!material) return;
-      const current = material.quantity || 0;
-      const newQty = Math.max(0, current - qty);
+  // const handleEgreso = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   if (!outMaterialId) return;
+  //   const qty = Number(outQty);
+  //   if (!isFinite(qty) || qty <= 0) return;
+  //   setLoadingOut(true);
+  //   try {
+  //     const material = materials.find((m) => m.id === outMaterialId);
+  //     if (!material) return;
+  //     const current = material.quantity || 0;
+  //     const newQty = Math.max(0, current - qty);
 
-      const { error: upErr } = await supabase
-        .from("inventory")
-        .update({ quantity: newQty })
-        .eq("id", material.id);
-      if (upErr) throw upErr;
+  //     const { error: upErr } = await supabase
+  //       .from("inventory")
+  //       .update({ quantity: newQty })
+  //       .eq("id", material.id);
+  //     if (upErr) throw upErr;
 
-      // Log activity with delta (outQty)
-      const horaActual = new Date().toLocaleTimeString("en-GB");
-      const createdBy = user?.id ?? null;
-      await supabase.from("activity").insert([
-        {
-          name: material.id,
-          movementType: "exit",
-          created_by: createdBy,
-          created_at: horaActual,
-          created_date: new Date().toISOString(),
-          quantity: qty,
-        },
-      ]);
+  //     // Log activity with delta (outQty)
+  //     const horaActual = new Date().toLocaleTimeString("en-GB");
+  //     const createdBy = user?.id ?? null;
+  //     await supabase.from("activity").insert([
+  //       {
+  //         name: material.id,
+  //         movementType: "exit",
+  //         created_by: createdBy,
+  //         created_at: horaActual,
+  //         created_date: new Date().toISOString(),
+  //         quantity: qty,
+  //       },
+  //     ]);
 
-      setOutQty("");
-      setOutMaterialId("");
-      await refreshMaterials();
-      // Alert if new stock is below defined minimum
-      if (material && typeof material.min_quantity === 'number' && newQty <= material.min_quantity && !alerted.has(material.id)) {
-        toast.warning(`Stock bajo: ${material.name}`, {
-          description: `Cantidad actual: ${newQty}${material.unit ? ' ' + material.unit : ''}. Mínimo definido: ${material.min_quantity}.`,
-        });
-        setAlerted((s) => new Set(s).add(material.id));
-      }
-    } catch (err) {
-      console.error("Error en egreso:", err);
-    } finally {
-      setLoadingOut(false);
-    }
-  };
+  //     setOutQty("");
+  //     setOutMaterialId("");
+  //     await refreshMaterials();
+  //     // Alert if new stock is below defined minimum
+  //     if (material && typeof material.min_quantity === 'number' && newQty <= material.min_quantity && !alerted.has(material.id)) {
+  //       toast.warning(`Stock bajo: ${material.name}`, {
+  //         description: `Cantidad actual: ${newQty}${material.unit ? ' ' + material.unit : ''}. Mínimo definido: ${material.min_quantity}.`,
+  //       });
+  //       setAlerted((s) => new Set(s).add(material.id));
+  //     }
+  //   } catch (err) {
+  //     console.error("Error en egreso:", err);
+  //   } finally {
+  //     setLoadingOut(false);
+  //   }
+  // };
 
   // Handlers de escaneo deshabilitados temporalmente
   // const onScanIngreso = async (code: { rawValue: string; format?: string }) => { /* ... */ };
@@ -256,17 +257,17 @@ export default function Home() {
           <TabsContent value="ingreso">
             <form onSubmit={handleIngreso} className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/** Escáner deshabilitado temporalmente **/}
-              {/**
               <div className="col-span-1 md:col-span-2">
                 <Label className="pb-4 px-2">Escanear código de barras (opcional)</Label>
-                <div className="border rounded p-2">
+                {/* <div className="border rounded p-2">
                   <BarcodeScanner onDetected={onScanIngreso} />
-                </div>
+                </div> */}
               </div>
-              **/}
+              
               <div className="col-span-1 md:col-span-2">
                 <div className="flex flex-col md:flex-row gap-2">
                   <select
+                    title="materiales"
                     className="border rounded p-2 w-full md:w-1/2"
                     value={uniqueMaterialNames.includes(inName) ? inName : ""}
                     onChange={(e) => setInName(e.target.value)}
@@ -294,7 +295,7 @@ export default function Home() {
 
               <div>
                 <Label>Unidad</Label>
-                <select className="border rounded p-2 w-full" value={inUnit} onChange={(e) => setInUnit(e.target.value)}>
+                <select title = "medidas" className="border rounded p-2 w-full" value={inUnit} onChange={(e) => setInUnit(e.target.value)}>
                   {Medidas.map((u) => (
                     <option key={u} value={u}>
                       {u}
@@ -317,7 +318,7 @@ export default function Home() {
           </TabsContent>
 
           <TabsContent value="egreso">
-            <form onSubmit={handleEgreso} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* <form onSubmit={handleEgreso} className="grid grid-cols-1 md:grid-cols-2 gap-4"> */}
               {/** Escáner deshabilitado temporalmente **/}
               {/**
               <div className="col-span-1 md:col-span-2">
@@ -327,7 +328,7 @@ export default function Home() {
                 </div>
               </div>
               **/}
-              <div>
+              {/* <div>
                 <Label>Material</Label>
                 <select
                   className="border rounded p-2 w-full"
@@ -359,7 +360,8 @@ export default function Home() {
                   {loadingOut ? "Procesando..." : "Registrar egreso"}
                 </Button>
               </div>
-            </form>
+            </form> */}
+            <EgressMaterialForm />
           </TabsContent>
         </Tabs>
       </div>
