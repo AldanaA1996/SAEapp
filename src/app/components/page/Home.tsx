@@ -22,7 +22,6 @@ export default function Home() {
   const [inName, setInName] = useState<string>("");
   const [inQty, setInQty] = useState<string>("");
   
-  // const [inBarcode, setInBarcode] = useState<string>("");
   const [inDescription, setInDescription] = useState<string>("");
   const [loadingIn, setLoadingIn] = useState<boolean>(false);
   const inQtyRef = useRef<HTMLInputElement | null>(null);
@@ -32,6 +31,10 @@ export default function Home() {
   const [outQty, setOutQty] = useState<string>("");
   const [loadingOut, setLoadingOut] = useState<boolean>(false);
   const outQtyRef = useRef<HTMLInputElement | null>(null);
+
+  // Search states for selects
+  const [inSearch, setInSearch] = useState<string>("");
+  const [outSearch, setOutSearch] = useState<string>("");
 
    const getDbUserId = async (): Promise<number | null> => {
       if (!user?.id) return null;
@@ -71,6 +74,26 @@ export default function Home() {
   const sortedMaterials = useMemo(() => {
     return [...materials].sort((a, b) => a.name.localeCompare(b.name, "es", { sensitivity: "base" }));
   }, [materials]);
+
+  // Filtered materials for ingreso based on search
+  const filteredIngresoMaterials = useMemo(() => {
+    if (!inSearch.trim()) return sortedMaterials;
+    const search = inSearch.toLowerCase();
+    return sortedMaterials.filter((m) =>
+      m.name.toLowerCase().includes(search) ||
+      (m.manufactur && m.manufactur.toLowerCase().includes(search))
+    );
+  }, [sortedMaterials, inSearch]);
+
+  // Filtered materials for egreso based on search
+  const filteredEgresoMaterials = useMemo(() => {
+    if (!outSearch.trim()) return sortedMaterials;
+    const search = outSearch.toLowerCase();
+    return sortedMaterials.filter((m) =>
+      m.name.toLowerCase().includes(search) ||
+      (m.manufactur && m.manufactur.toLowerCase().includes(search))
+    );
+  }, [sortedMaterials, outSearch]);
   
   useEffect(() => {
     const fetchInitial = async () => {
@@ -130,7 +153,9 @@ export default function Home() {
         if (upErr) throw upErr;
 
         // Log activity with delta (inQty)
-        const horaActual = new Date().toLocaleTimeString("en-GB");
+        const now = new Date();
+        const horaActual = now.toLocaleTimeString("es-AR", { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const fechaActual = now.toLocaleDateString("es-AR", { year: 'numeric', month: '2-digit', day: '2-digit' }).split('/').reverse().join('-') + 'T' + now.toLocaleTimeString("es-AR", { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
         const createdBy = user?.id ?? null;
         const userCreatorId = await getDbUserId();
         await supabase.from("activity").insert([
@@ -140,7 +165,7 @@ export default function Home() {
             user_creator: userCreatorId,
             created_by: createdBy,
             created_at: horaActual,
-            created_date: new Date().toISOString(),
+            created_date: fechaActual,
             quantity: qty,
           },
         ]);
@@ -164,7 +189,9 @@ export default function Home() {
         if (insErr) throw insErr;
 
         const materialId = (inserted as any)?.id;
-        const horaActual = new Date().toLocaleTimeString("en-GB");
+        const now = new Date();
+        const horaActual = now.toLocaleTimeString("es-AR", { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const fechaActual = now.toLocaleDateString("es-AR", { year: 'numeric', month: '2-digit', day: '2-digit' }).split('/').reverse().join('-') + 'T' + now.toLocaleTimeString("es-AR", { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
         const createdBy = user?.id ?? null;
         const userCreatorId = await getDbUserId();
         await supabase.from("activity").insert([
@@ -174,7 +201,7 @@ export default function Home() {
             user_creator: userCreatorId,
             created_by: createdBy,
             created_at: horaActual,
-            created_date: new Date().toISOString(),
+            created_date: fechaActual,
             quantity: qty,
           },
         ]);
@@ -221,7 +248,9 @@ export default function Home() {
       if (upErr) throw upErr;
 
       // Log activity with delta (outQty)
-      const horaActual = new Date().toLocaleTimeString("en-GB");
+      const now = new Date();
+      const horaActual = now.toLocaleTimeString("es-AR", { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const fechaActual = now.toLocaleDateString("es-AR", { year: 'numeric', month: '2-digit', day: '2-digit' }).split('/').reverse().join('-') + 'T' + now.toLocaleTimeString("es-AR", { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
       const createdBy = user?.id ?? null;
       const userCreatorId = await getDbUserId();
       await supabase.from("activity").insert([
@@ -231,7 +260,7 @@ export default function Home() {
           user_creator: userCreatorId,
           created_by: createdBy,
           created_at: horaActual,
-          created_date: new Date().toISOString(),
+          created_date: fechaActual,
           quantity: qty,
         },
       ]);
@@ -239,7 +268,6 @@ export default function Home() {
       setOutQty("");
       setOutMaterialId("");
       await refreshMaterials();
-      // Alert if new stock is below defined minimum
       // if (material && typeof material.min_quantity === 'number' && newQty <= material.min_quantity && !alerted.has(material.id)) {
       //   toast.warning(`Stock bajo: ${material.name} ${material.manufactur}`, {
       //     description: `Cantidad actual: ${newQty}${material.unit ? ' ' + material.unit : ''}. Mínimo definido: ${material.min_quantity}.`,
@@ -281,14 +309,24 @@ export default function Home() {
               </div>
               **/}
               <div className="col-span-1 md:col-span-2 px-2 gap-2">
-                <div className="flex flex-col md:flex-row gap-2">
+                <Label>Material</Label>
+                <div className="flex flex-col gap-2">
+                  <Input
+                    placeholder="Buscar material..."
+                    value={inSearch}
+                    onChange={(e) => setInSearch(e.target.value)}
+                  />
                   <select
-                    className="border rounded p-2 w-full md:w-1/2 px-2" 
-                    value={uniqueMaterialNames.includes(inName) ? inName : "" }
-                    onChange={(e) => setInName(e.target.value)}
+                    className="border rounded p-2 w-full"
+                    size={5}
+                    value={inName}
+                    onChange={(e) => {
+                      setInName(e.target.value);
+                      setInSearch("");
+                    }}
                   >
                     <option value="">Selecciona un objeto existente</option>
-                    {sortedMaterials.map((m) => (
+                    {filteredIngresoMaterials.map((m) => (
                       <option key={m.id} value={m.name}>
                         {m.name} {m.manufactur}
                       </option>
@@ -334,18 +372,29 @@ export default function Home() {
               **/}
               <div>
                 <Label>Material</Label>
-                <select
-                  className="border rounded p-2 w-full"
-                  value={outMaterialId}
-                  onChange={(e) => setOutMaterialId(e.target.value ? Number(e.target.value) : "")}
-                >
-                  <option value="">Selecciona un material</option>
-                  {sortedMaterials.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name} - {m.manufactur} {typeof m.quantity === "number" ? `(Stock: ${m.quantity})` : ""}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex flex-col gap-2">
+                  <Input
+                    placeholder="Buscar material..."
+                    value={outSearch}
+                    onChange={(e) => setOutSearch(e.target.value)}
+                  />
+                  <select
+                    className="border rounded p-2 w-full"
+                    size={5}
+                    value={outMaterialId}
+                    onChange={(e) => {
+                      setOutMaterialId(e.target.value ? Number(e.target.value) : "");
+                      setOutSearch("");
+                    }}
+                  >
+                    <option value="">Selecciona un material</option>
+                    {filteredEgresoMaterials.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name} - {m.manufactur} {typeof m.quantity === "number" ? `(Stock: ${m.quantity})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div>

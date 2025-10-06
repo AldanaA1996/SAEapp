@@ -13,6 +13,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/app/components/ui/sidebar"
+import { toast } from "sonner"
 
 // Menu items.
 const items = [
@@ -70,9 +71,11 @@ export function AppSidebar() {
     e.preventDefault()
     try {
       await supabase.auth.signOut()
+
       await logout()
     } finally {
       window.location.href = "/app"
+      toast.success("Sesión cerrada exitosamente")
     }
   }
 
@@ -89,6 +92,10 @@ export function AppSidebar() {
                     <a
                       href={item.url}
                       onClick={(e) => {
+                        // Cerrar sesión
+                        // añadir una ventana para confirmar la acción
+                        // si el usuario confirma, se ejecuta la función handleLogout
+                        
                         if (item.title === "Cerrar Sesión") {
                           handleLogout(e)
                         }

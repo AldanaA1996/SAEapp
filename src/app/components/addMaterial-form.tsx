@@ -168,7 +168,7 @@ export default function AddMaterialForm() {
       await supabase.from("activity").insert([
         {
           name: (inserted as any)?.id,
-          movementType: "entry",
+          movementType: "new",
           user_creator: dbUserId,
           created_by: userAuth.id,
           created_at: horaActual,

@@ -1,9 +1,9 @@
 import type { ManifestOptions } from "vite-plugin-pwa"
 
-const NAME = "SAE Depo"
-const SHORT_NAME = "DepoS"
+const NAME = "LEIA"
+const SHORT_NAME = "LEIA"
 const DESCRIPTION =
-	"SAE Depo is a stock management system that helps you manage your stock efficiently and effectively. It provides a user-friendly interface and powerful features to help you keep track of your stock levels and new entries."
+	"LEIA is a stock management system that helps you manage your stock efficiently and effectively. It provides a user-friendly interface and powerful features to help you keep track of your stock levels and new entries."
 
 /**
  * Defines the default SEO configuration for the website.
@@ -28,8 +28,8 @@ export const seoConfig = {
  * Defines the configuration for PWA webmanifest.
  */
 export const manifest: Partial<ManifestOptions> = {
-	name: "SAEDepo", // Change this to your website's name.
-	short_name: "depoS", // Change this to your website's short name.
+	name: "LEIA", // Change this to your website's name.
+	short_name: "LEIA", // Change this to your website's short name.
 	description: DESCRIPTION,
 	theme_color: "#ff0000", // Change this to your primary color.
 	background_color: "#000000", // Change this to your background color.

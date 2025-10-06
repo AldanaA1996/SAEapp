@@ -34,14 +34,19 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <Card className="w-96 bg-white shadow-lg p-6">
-        <CardHeader className="text-center">
-          <CardTitle>Login</CardTitle>
-         
+    
+    <div className="min-h-screen flex items-center justify-center">
+      <Card className="w-4/5 md:w-96 bg-gray-200 shadow-lg p-6">
+        <CardHeader className="flex flex-col items-center justify-center text-center">
+          <img src="/images/logo.png" alt="Logo LEIA" className="w-18 h-18 mb-4" />
+          <CardTitle className="text-2xl font-bold">Bienvenido a LEIA</CardTitle>
+         <CardDescription className="text-center text-sm text-gray-500">
+            Inicia sesión para continuar
+          </CardDescription>
         </CardHeader>
 
         <CardContent>
+          
           <form
             className="flex flex-col gap-4"
             onSubmit={handleLogin}
@@ -53,7 +58,7 @@ export default function Login() {
                 placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                
+                className="bg-white w-full"
               />
 
               <Input
@@ -62,7 +67,7 @@ export default function Login() {
                 placeholder="Contraseña"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                
+                className="bg-white w-full"
               />
 
               <Button

@@ -95,11 +95,14 @@ import "../styles/global.css"
 		text-align: center;
 		color: white;
 		max-width: 600px;
+		
+	
+		
 		padding: 2rem;
 	}
 
 	.hero-logo {
-		width: 160px;
+		width: 180px;
 		height: 160px;
 		margin: 0 auto 2rem;
 		filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
@@ -128,12 +131,12 @@ import "../styles/global.css"
 		border-radius: 0.5rem;
 		font-weight: 600;
 		transition: all 0.3s ease;
-		box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+		/* box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); */
 	}
 
 	.hero-button:hover {
 		transform: translateY(-2px);
-		box-shadow: 0 8px 25px rgba(59, 130, 246, 0.6);
+		background: linear-gradient(135deg, #3b82f6, #1d4ed8);
 	}
 
 	/* Responsive design */
@@ -143,7 +146,7 @@ import "../styles/global.css"
 		}
 
 		.hero-logo {
-			width: 120px;
+			width: 130px;
 			height: 120px;
 		}
 
@@ -157,12 +160,13 @@ import "../styles/global.css"
 	}
 </style>
 
-<Layout title="SAE DEPO">
+<Layout title="LEIA">
 	<LayoutPage>
 		<section class="hero-section">
-			<div class="hero-content">
-				<img src="/favicons/favicon-120x120.png" alt="Logo SAE DEPO" class="hero-logo" />
-				<h1 class="hero-title">Bienvenido a SAE DEPO</h1>
+			
+			<div class="hero-content bg-gray-800/80 backdrop-blur border-b border-gray-700 rounded-xl ">
+				<img src="/images/logo.png" alt="Logo LEIA" class="hero-logo" />
+				<h1 class="hero-title">Bienvenido a LEIA</h1>
 				<p class="hero-subtitle">Manejo de stock simple y eficiente</p>
 				<a href="/login" class="hero-button">
 					Entrar

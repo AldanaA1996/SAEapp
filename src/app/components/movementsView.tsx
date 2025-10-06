@@ -98,20 +98,15 @@ export default function MovementsView({ tableName = "activity" }: MovementsViewP
 
     const getWhen = (m: MovementRecord): Date | null => {
       const cd = m.created_date;
-      const ca = m.created_at;
       if (cd) {
-        const d = new Date(cd);
-        if (!isNaN(d.getTime())) {
-          if (ca && /\d{1,2}:\d{2}/.test(ca)) {
-            const [h, min, sec] = ca.split(":");
-            d.setHours(Number(h) || 0, Number(min) || 0, Number(sec) || 0, 0);
-          }
-          return d;
+        // Parse como fecha local, no UTC
+        const dateStr = String(cd).replace('T', ' ').replace('Z', '').trim();
+        const parts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2}):(\d{2})/);
+        if (parts) {
+          const [, year, month, day, hour, min, sec] = parts;
+          const d = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(min), Number(sec));
+          if (!isNaN(d.getTime())) return d;
         }
-      }
-      if (ca) {
-        const d = new Date(ca);
-        if (!isNaN(d.getTime())) return d;
       }
       return null;
     };
@@ -177,7 +172,7 @@ export default function MovementsView({ tableName = "activity" }: MovementsViewP
   }
 
   return (
-    <div className="flex flex-col space-y-3 p-2 md:w-[95%] h-full">
+    <div className="flex flex-col space-y-3 p-2 w-[95%] self-center h-full">
       {/* Barra de filtros */}
       <div className="sticky top-0 z-10 bg-white/70 backdrop-blur border rounded-md p-3 flex flex-wrap items-end gap-3">
         <div>
@@ -233,17 +228,37 @@ export default function MovementsView({ tableName = "activity" }: MovementsViewP
         const when = (() => {
           const cd = m.created_date;
           const ca = m.created_at;
+          
           if (cd) {
-            const d = new Date(cd);
-            if (!isNaN(d.getTime())) {
-              if (ca && /\d{1,2}:\d{2}/.test(ca)) {
-                const [h, min, sec] = ca.split(":");
-                d.setHours(Number(h) || 0, Number(min) || 0, Number(sec) || 0, 0);
+            // Parse como fecha local, no UTC
+            const dateStr = String(cd).replace('Z', '').trim();
+            
+            // Intenta parsear formato: YYYY-MM-DDTHH:mm:ss o YYYY-MM-DD HH:mm:ss
+            const parts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2}):(\d{2})/);
+            if (parts) {
+              const [, year, month, day, hour, min, sec] = parts;
+              const d = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(min), Number(sec));
+              if (!isNaN(d.getTime())) {
+                return formatDateTimeLocal(d);
               }
-              return formatDateTime(d.toISOString());
             }
+            
+            // Fallback: formato más flexible (puede que falte segundos)
+            const match2 = dateStr.match(/(\d{4})-(\d{2})-(\d{2})[T\s]?(\d{2}):(\d{2}):?(\d{2})?/);
+            if (match2) {
+              const [, year, month, day, hour, min, sec] = match2;
+              const d = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(min), Number(sec || 0));
+              if (!isNaN(d.getTime())) {
+                return formatDateTimeLocal(d);
+              }
+            }
+            
+            // Si nada funciona, mostrar el valor raw de created_date con la hora
+            return cd + (ca ? ` (${ca})` : "");
           }
-          return ca ? formatDateTime(ca) : "";
+          
+          // Si solo hay hora, mostrarla
+          return ca ? `${ca}` : "";
         })();
 
         const material = (() => {
@@ -263,10 +278,11 @@ export default function MovementsView({ tableName = "activity" }: MovementsViewP
         const qtyChip = (() => {
           if (qtyVal == null) return null;
           const mt = String(movementType || "").toLowerCase();
+          const isNew = mt === "new";
           const isEntry = mt === "entry";
           const isExit = mt === "exit";
-          const sign = isEntry ? "+" : isExit ? "-" : "";
-          const color = isEntry ? "bg-green-50 text-green-700" : isExit ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700";
+          const sign = isNew ? "NEW +" : isEntry ? "+" : isExit ? "-" : "";
+          const color = isNew ? "bg-blue-50 text-blue-700" : isEntry ? "bg-green-50 text-green-700" : isExit ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700";
           return (
             <span className={`text-xs rounded px-2 py-0.5 ${color}`}>
               {sign}{qtyVal}
@@ -275,9 +291,9 @@ export default function MovementsView({ tableName = "activity" }: MovementsViewP
         })();
 
         return (
-          <Card key={id} className="p-4 shadow-sm border">
+          <Card key={id} className="p-4 w-[100%] self-center border">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="min-w-0">
+              <div className="min-w-[200px]">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-semibold">
                     {material || m.item_name || "Movimiento"}
@@ -344,10 +360,30 @@ function formatDateTime(value?: string) {
   try {
     const d = new Date(value);
     if (isNaN(d.getTime())) return value;
-    return d.toLocaleString();
+    // Formato: DD/MM/YYYY HH:mm:ss (24 horas)
+    return d.toLocaleString("es-AR", { 
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
   } catch {
     return value;
   }
+}
+
+function formatDateTimeLocal(d: Date) {
+  // Formato: DD/MM/YYYY HH:mm:ss (24 horas) para objeto Date ya creado como local
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  const seconds = String(d.getSeconds()).padStart(2, '0');
+  return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
 }
 
 function cryptoRandomId() {

@@ -158,7 +158,7 @@ export default function SignUp() {
               Crear Cuenta
             </CardTitle>
             <CardDescription className="text-gray-600">
-              Regístrate en SAEapp para comenzar
+              Regístrate en LEIA para comenzar
             </CardDescription>
           </CardHeader>
 
