@@ -9,7 +9,7 @@ const DESCRIPTION =
  * Defines the default SEO configuration for the website.
  */
 export const seoConfig = {
-	baseURL: "https://saedepo.netlify.app/", // Change this to your production URL.
+	baseURL: "https://leia-eze.netlify.app/", // Change this to your production URL.
 	description: DESCRIPTION, // Change this to be your website's description.
 	type: "website",
 	image: {
