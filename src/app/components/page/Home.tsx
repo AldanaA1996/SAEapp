@@ -10,6 +10,7 @@ import { useAuthenticationStore } from "@/app/store/authentication";
 import { TriangleAlert } from "lucide-react";
 // import BarcodeScanner from "@/app/components/scaneer"; // scanner deshabilitado temporalmente
 import EgressMaterialForm from "@/app/components/egressMaterial-form";
+import IngressMaterialForm from "@/app/components/ingressMaterial-form";
 
 export default function Home() {
   const user = useAuthenticationStore((s) => s.user);
@@ -296,16 +297,16 @@ export default function Home() {
           </TabsList>
 
           <TabsContent value="ingreso">
-            <form onSubmit={handleIngreso} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* <form onSubmit={handleIngreso} className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/** Escáner deshabilitado temporalmente **/}
-              <div className="col-span-1 md:col-span-2">
-                <Label className="pb-4 px-2">Escanear código de barras (opcional)</Label>
+              {/* <div className="col-span-1 md:col-span-2"> */}
+                {/* <Label className="pb-4 px-2">Escanear código de barras (opcional)</Label> */}
                 {/* <div className="border rounded p-2">
                   <BarcodeScanner onDetected={onScanIngreso} />
                 </div> */}
-              </div>
+             {/* </div> */}
               
-              <div className="col-span-1 md:col-span-2">
+              {/* <div className="col-span-1 md:col-span-2">
                 <div className="flex flex-col md:flex-row gap-2">
                   <select
                     title="materiales"
@@ -355,7 +356,8 @@ export default function Home() {
                   {loadingIn ? "Guardando..." : "Guardar ingreso"}
                 </Button>
               </div>
-            </form>
+            </form> */}
+            <IngressMaterialForm />
           </TabsContent>
 
           <TabsContent value="egreso">

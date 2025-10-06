@@ -24,6 +24,7 @@ id: string;
 name: string;
 quantity: number;
 unit: string;
+location: string;
 };
 
 function EgressMaterialForm() {
