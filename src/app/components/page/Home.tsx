@@ -216,6 +216,7 @@ export default function Home() {
       // setInBarcode("");
       setInDescription("");
       await refreshMaterials();
+      toast.success("Ingreso registrado exitosamente");
       // // After refresh, show alert if still under min
       // const m = (materials.find((x) => x.name.toLowerCase() === inName.trim().toLowerCase()) ?? null) as any;
       // if (m && typeof m.min_quantity === 'number' && m.quantity <= m.min_quantity && !alerted.has(m.id)) {
@@ -226,6 +227,7 @@ export default function Home() {
       // }
     } catch (err) {
       console.error("Error en ingreso:", err);
+      toast.error("Error al registrar el ingreso. Intenta nuevamente.");
     } finally {
       setLoadingIn(false);
     }
@@ -310,9 +312,13 @@ export default function Home() {
                 <div className="flex flex-col md:flex-row gap-2">
                   <select
                     title="materiales"
-                    className="border rounded p-2 w-full md:w-1/2"
-                    value={uniqueMaterialNames.includes(inName) ? inName : ""}
-                    onChange={(e) => setInName(e.target.value)}
+                    className="border rounded p-2 w-full"
+                    size={5}
+                    value={inName}
+                    onChange={(e) => {
+                      setInName(e.target.value);
+                      setInSearch("");
+                    }}
                   >
                     <option value="">Selecciona un objeto existente</option>
                     {filteredIngresoMaterials.map((m) => (
@@ -335,16 +341,16 @@ export default function Home() {
                 />
               </div>
 
-              <div>
-                <Label>Unidad</Label>
+              {/* <div>
+                {/* <Label>Unidad</Label>
                 <select title = "medidas" className="border rounded p-2 w-full" value={inUnit} onChange={(e) => setInUnit(e.target.value)}>
                   {Medidas.map((u) => (
                     <option key={u} value={u}>
                       {u}
                     </option>
                   ))}
-                </select>
-              </div>
+                </select> */}
+              {/* </div>  */}
 
               <div>
                 <Label>Descripción (opcional)</Label>
