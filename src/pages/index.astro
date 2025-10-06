@@ -4,7 +4,6 @@ import LayoutPage from "../components/Layout/LayoutPage.astro";
 import { useAuthenticationStore } from "@/app/store/authentication";
 import "../styles/global.css"
 
-
 ---
 <script is:inline>
 	import { useEffect } from "react";
@@ -36,16 +35,143 @@ import "../styles/global.css"
 	}
 </script>
 
-<Layout title="SAE Depo">
-  <LayoutPage>
-    <div class="flex flex-col items-center justify-center h-screen text-center">
-      <img src="/images/logo.svg" alt="Logo" class="w-40 h-35 mb-6" />
-      <h1 class="text-4xl font-bold mb-4">Bienvenido a SAE DEPO</h1>
-      <p class="text-lg mb-6">Gestión de stock simple y eficiente</p>
 
-      <a href="/login" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-        Entrar
-      </a>
-    </div>
-  </LayoutPage>
+
+<script>
+	document.addEventListener('DOMContentLoaded', () => {
+		const getThemePreference = () => {
+			if (typeof localStorage !== 'undefined' && localStorage.getItem('theme')) {
+				return localStorage.getItem('theme');
+			}
+			return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+		};
+		const isDark = getThemePreference() === 'dark';
+		document.documentElement.classList[isDark ? 'add' : 'remove']('dark');
+
+		if (typeof localStorage !== 'undefined') {
+			const observer = new MutationObserver(() => {
+				const isDark = document.documentElement.classList.contains('dark');
+				localStorage.setItem('theme', isDark ? 'dark' : 'light');
+			});
+			observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+		}
+	});
+</script>
+
+<style>
+	.hero-section {
+		background-image: url('/images/bg.JPG');
+		background-size: cover;
+		background-position: center;
+		background-repeat: no-repeat;
+		background-attachment: fixed;
+		min-height: 100vh;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		position: relative;
+	}
+
+	/* Overlay para mejorar la legibilidad del texto */
+	.hero-section::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: linear-gradient(
+			135deg,
+			rgba(0, 0, 0, 0.4) 0%,
+			rgba(0, 0, 0, 0.2) 50%,
+			rgba(0, 0, 0, 0.4) 100%
+		);
+		z-index: 1;
+	}
+
+	.hero-content {
+		position: relative;
+		z-index: 2;
+		text-align: center;
+		color: white;
+		max-width: 600px;
+		
+	
+		
+		padding: 2rem;
+	}
+
+	.hero-logo {
+		width: 180px;
+		height: 160px;
+		margin: 0 auto 2rem;
+		filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+	}
+
+	.hero-title {
+		font-size: 3rem;
+		font-weight: bold;
+		margin-bottom: 1rem;
+		text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+	}
+
+	.hero-subtitle {
+		font-size: 1.25rem;
+		margin-bottom: 2rem;
+		opacity: 0.9;
+		text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+	}
+
+	.hero-button {
+		display: inline-block;
+		padding: 0.75rem 2rem;
+		background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+		color: white;
+		text-decoration: none;
+		border-radius: 0.5rem;
+		font-weight: 600;
+		transition: all 0.3s ease;
+		/* box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); */
+	}
+
+	.hero-button:hover {
+		transform: translateY(-2px);
+		background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+	}
+
+	/* Responsive design */
+	@media (max-width: 768px) {
+		.hero-section {
+			background-attachment: scroll; /* Mejor rendimiento en móviles */
+		}
+
+		.hero-logo {
+			width: 130px;
+			height: 120px;
+		}
+
+		.hero-title {
+			font-size: 2.5rem;
+		}
+
+		.hero-subtitle {
+			font-size: 1.1rem;
+		}
+	}
+</style>
+
+<Layout title="LEIA">
+	<LayoutPage>
+		<section class="hero-section">
+			
+			<div class="hero-content bg-gray-800/80 backdrop-blur border-b border-gray-700 rounded-xl ">
+				<img src="/images/logo.png" alt="Logo LEIA" class="hero-logo" />
+				<h1 class="hero-title">Bienvenido a LEIA</h1>
+				<p class="hero-subtitle">Manejo de stock simple y eficiente</p>
+				<a href="/login" class="hero-button">
+					Entrar
+				</a>
+			</div>
+		</section>
+	</LayoutPage>
 </Layout>

@@ -1,4 +1,6 @@
-import { ArrowUpDown, Home, Package, Search, Settings, Drill, DoorOpen, UsersRound, List } from "lucide-react"
+import { ArrowUpDown, Home, Package, Search, Settings, Drill, DoorOpen, UsersRound, List, LogOut } from "lucide-react"
+import { supabase } from "@/app/lib/supabaseClient"
+import { useAuthenticationStore } from "@/app/store/authentication"
 
 
 import {
@@ -11,6 +13,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/app/components/ui/sidebar"
+import { toast } from "sonner"
 
 // Menu items.
 const items = [
@@ -54,10 +57,28 @@ const items = [
   //   url: "#",
   //   icon: UsersRound,
   // },
-  
+  {
+    title: "Cerrar Sesión",
+    url: "#",
+    icon: LogOut,
+  }
 ]
 
 export function AppSidebar() {
+  const { logout } = useAuthenticationStore()
+
+  const handleLogout = async (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault()
+    try {
+      await supabase.auth.signOut()
+
+      await logout()
+    } finally {
+      window.location.href = "/app"
+      toast.success("Sesión cerrada exitosamente")
+    }
+  }
+
   return (
     <Sidebar>
       <SidebarContent>
@@ -68,7 +89,18 @@ export function AppSidebar() {
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <a href={item.url}>
+                    <a
+                      href={item.url}
+                      onClick={(e) => {
+                        // Cerrar sesión
+                        // añadir una ventana para confirmar la acción
+                        // si el usuario confirma, se ejecuta la función handleLogout
+                        
+                        if (item.title === "Cerrar Sesión") {
+                          handleLogout(e)
+                        }
+                      }}
+                    >
                       <item.icon />
                       <span>{item.title}</span>
                     </a>

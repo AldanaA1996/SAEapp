@@ -2,6 +2,7 @@
 // Component imports
 //@ts-ignore
 import { SEO } from "astro-seo"
+import { Toaster } from "@/app/components/ui/sonner";
 
 // Style imports
 import "src/styles/global.css";
@@ -56,21 +57,19 @@ const {
         basic: {
           title: ogTitle || title,
           type: "website",
-          image: seoConfig.image.url || image.url
+          image: seoConfig.image.url 
         },
         image: {
           width: seoConfig.image.width,
           height: seoConfig.image.height,
-          alt: seoConfig.image.alt || image.alt
+          alt: seoConfig.image.alt 
         },
         optional: {
           siteName: seoConfig.siteName,
           description: seoConfig.description || description
         }
       }}
-      twitter={{
-        card: seoConfig.twitter.card
-      }}
+      
     />
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -104,5 +103,8 @@ const {
     <main>
       <slot />
     </main>
+
+    <!-- 🔥 Toaster para componentes React en páginas de login -->
+    <Toaster richColors position="top-right" client:load />
   </body>
 </html>

@@ -5,42 +5,24 @@ import { Label } from "@/app/components/ui/label";
 import { Input } from "@/app/components/ui/input";
 import { Button } from "@/app/components/ui/button";
 import { supabase } from "@/app/lib/supabaseClient";
-import { useAuthenticationStore } from "@/app/store/authentication";
-// import BarcodeScanner from "@/app/components/scaneer"; // scanner deshabilitado temporalmente
 import { toast } from "sonner";
+import { useAuthenticationStore } from "@/app/store/authentication";
+import { TriangleAlert } from "lucide-react";
+// import BarcodeScanner from "@/app/components/scaneer"; // scanner deshabilitado temporalmente
 import EgressMaterialForm from "@/app/components/egressMaterial-form";
 
 export default function Home() {
   const user = useAuthenticationStore((s) => s.user);
-
-  const Medidas = useMemo(
-    () => [
-      "Select",
-      "Kg",
-      "Mts",
-      "Cms",
-      "Caja",
-      "Unidad",
-      "Paquete",
-      "Litro",
-      "Gramo",
-      "Pieza",
-      "Bolsa",
-      "Otro",
-    ] as const,
-    []
-  );
-
+ 
   const [materials, setMaterials] = useState<
-    Array<{ id: number; name: string; quantity: number; unit: string | null; department_id?: string | null; barcode?: string | null; min_quantity?: number | null }>
+    Array<{ id: number; name: string; quantity: number; unit: string | null; department_id?: string | null; manufactur?: string | null; min_quantity?: number | null }>
   >([]);
   const [alerted, setAlerted] = useState<Set<number>>(new Set());
 
   // Ingreso state
   const [inName, setInName] = useState<string>("");
   const [inQty, setInQty] = useState<string>("");
-  const [inUnit, setInUnit] = useState<string>("Select");
-  const [inBarcode, setInBarcode] = useState<string>("");
+  
   const [inDescription, setInDescription] = useState<string>("");
   const [loadingIn, setLoadingIn] = useState<boolean>(false);
   const inQtyRef = useRef<HTMLInputElement | null>(null);
@@ -51,11 +33,40 @@ export default function Home() {
   const [loadingOut, setLoadingOut] = useState<boolean>(false);
   const outQtyRef = useRef<HTMLInputElement | null>(null);
 
+  // Search states for selects
+  const [inSearch, setInSearch] = useState<string>("");
+  const [outSearch, setOutSearch] = useState<string>("");
+
+   const getDbUserId = async (): Promise<number | null> => {
+      if (!user?.id) return null;
+  
+      const { data: dbUser, error } = await supabase
+        .from("user")
+        .select("id")
+        .eq("userAuth", user.id) // authUser.id = UUID de Auth
+        .maybeSingle();
+  
+      if (error) {
+        console.error("Error buscando user.id:", error);
+        toast.error("Error buscando usuario en la base");
+        return null;
+      }
+  
+      if (!dbUser) {
+        toast.error("El usuario logueado no está vinculado en la tabla user");
+        return null;
+      }
+  
+      return dbUser.id;
+    };
+ 
+  
   // Unique names for the ingreso datalist
   const uniqueMaterialNames = useMemo(() => {
     const set = new Set<string>();
     materials.forEach((m) => {
       if (m.name) set.add(m.name);
+      if (m.manufactur) set.add(m.manufactur);
     });
     return Array.from(set).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
   }, [materials]);
@@ -65,16 +76,36 @@ export default function Home() {
     return [...materials].sort((a, b) => a.name.localeCompare(b.name, "es", { sensitivity: "base" }));
   }, [materials]);
 
+  // Filtered materials for ingreso based on search
+  const filteredIngresoMaterials = useMemo(() => {
+    if (!inSearch.trim()) return sortedMaterials;
+    const search = inSearch.toLowerCase();
+    return sortedMaterials.filter((m) =>
+      m.name.toLowerCase().includes(search) ||
+      (m.manufactur && m.manufactur.toLowerCase().includes(search))
+    );
+  }, [sortedMaterials, inSearch]);
+
+  // Filtered materials for egreso based on search
+  const filteredEgresoMaterials = useMemo(() => {
+    if (!outSearch.trim()) return sortedMaterials;
+    const search = outSearch.toLowerCase();
+    return sortedMaterials.filter((m) =>
+      m.name.toLowerCase().includes(search) ||
+      (m.manufactur && m.manufactur.toLowerCase().includes(search))
+    );
+  }, [sortedMaterials, outSearch]);
+  
   useEffect(() => {
     const fetchInitial = async () => {
-      const { data: mats } = await supabase.from("inventory").select("id,name,quantity,unit,barcode,min_quantity");
+      const { data: mats } = await supabase.from("inventory").select("id,name,quantity,manufactur,min_quantity");
       setMaterials((mats as any) || []);
     };
     fetchInitial();
   }, []);
 
   const refreshMaterials = async () => {
-    const { data } = await supabase.from("inventory").select("id,name,quantity,unit,barcode,min_quantity");
+    const { data } = await supabase.from("inventory").select("id,name,quantity,manufactur,min_quantity");
     setMaterials((data as any) || []);
   };
 
@@ -87,8 +118,11 @@ export default function Home() {
         const min = typeof m.min_quantity === 'number' ? m.min_quantity : undefined;
         if (min !== undefined && min >= 0 && typeof m.quantity === 'number' && m.quantity <= min) {
           if (!next.has(m.id)) {
-            toast.warning(`Stock bajo: ${m.name}`, {
-              description: `Cantidad actual: ${m.quantity}${m.unit ? ' ' + m.unit : ''}. Mínimo definido: ${min}.`,
+            
+            toast.warning(` Stock bajo: ${m.name} ${m.manufactur}`, {
+              description: ` Cantidad actual: ${m.quantity}${m.unit ? ' ' + m.unit : ''}. Mínimo definido: ${min}.`,
+              duration: 3000,
+              icon: <TriangleAlert /> 
             });
             next.add(m.id);
           }
@@ -112,23 +146,27 @@ export default function Home() {
         // Update quantity and optionally update metadata
         const newQty = (existing.quantity || 0) + qty;
         const updatePayload: any = { quantity: newQty };
-        if (inUnit && inUnit !== "Select") updatePayload.unit = inUnit;
-        if (inBarcode) updatePayload.barcode = inBarcode;
+       
+        // if (inBarcode) updatePayload.barcode = inBarcode;
         if (inDescription) updatePayload.description = inDescription;
 
         const { error: upErr } = await supabase.from("inventory").update(updatePayload).eq("id", existing.id);
         if (upErr) throw upErr;
 
         // Log activity with delta (inQty)
-        const horaActual = new Date().toLocaleTimeString("en-GB");
+        const now = new Date();
+        const horaActual = now.toLocaleTimeString("es-AR", { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const fechaActual = now.toLocaleDateString("es-AR", { year: 'numeric', month: '2-digit', day: '2-digit' }).split('/').reverse().join('-') + 'T' + now.toLocaleTimeString("es-AR", { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
         const createdBy = user?.id ?? null;
+        const userCreatorId = await getDbUserId();
         await supabase.from("activity").insert([
           {
             name: existing.id,
             movementType: "entry",
+            user_creator: userCreatorId,
             created_by: createdBy,
             created_at: horaActual,
-            created_date: new Date().toISOString(),
+            created_date: fechaActual,
             quantity: qty,
           },
         ]);
@@ -140,9 +178,8 @@ export default function Home() {
             {
               name: inName.trim(),
               quantity: qty,
-              unit: inUnit && inUnit !== "Select" ? inUnit : null,
-              department_id: null,
-              barcode: inBarcode || null,
+              
+              // barcode: inBarcode || null,
               description: inDescription || null,
               created_at: new Date().toISOString(),
             },
@@ -153,15 +190,19 @@ export default function Home() {
         if (insErr) throw insErr;
 
         const materialId = (inserted as any)?.id;
-        const horaActual = new Date().toLocaleTimeString("en-GB");
+        const now = new Date();
+        const horaActual = now.toLocaleTimeString("es-AR", { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const fechaActual = now.toLocaleDateString("es-AR", { year: 'numeric', month: '2-digit', day: '2-digit' }).split('/').reverse().join('-') + 'T' + now.toLocaleTimeString("es-AR", { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
         const createdBy = user?.id ?? null;
+        const userCreatorId = await getDbUserId();
         await supabase.from("activity").insert([
           {
             name: materialId,
             movementType: "entry",
+            user_creator: userCreatorId,
             created_by: createdBy,
             created_at: horaActual,
-            created_date: new Date().toISOString(),
+            created_date: fechaActual,
             quantity: qty,
           },
         ]);
@@ -170,18 +211,18 @@ export default function Home() {
       // Reset inputs and refresh
       setInName("");
       setInQty("");
-      setInUnit("Select");
-      setInBarcode("");
+      
+      // setInBarcode("");
       setInDescription("");
       await refreshMaterials();
-      // After refresh, show alert if still under min
-      const m = (materials.find((x) => x.name.toLowerCase() === inName.trim().toLowerCase()) ?? null) as any;
-      if (m && typeof m.min_quantity === 'number' && m.quantity <= m.min_quantity && !alerted.has(m.id)) {
-        toast.warning(`Stock bajo: ${m.name}`, {
-          description: `Cantidad actual: ${m.quantity}${m.unit ? ' ' + m.unit : ''}. Mínimo definido: ${m.min_quantity}.`,
-        });
-        setAlerted((s) => new Set(s).add(m.id));
-      }
+      // // After refresh, show alert if still under min
+      // const m = (materials.find((x) => x.name.toLowerCase() === inName.trim().toLowerCase()) ?? null) as any;
+      // if (m && typeof m.min_quantity === 'number' && m.quantity <= m.min_quantity && !alerted.has(m.id)) {
+      //   toast.warning(`Stock bajo: ${m.name} ${m.manufactur}`, {
+      //     description: `Cantidad actual: ${m.quantity}${m.unit ? ' ' + m.unit : ''}. Mínimo definido: ${m.min_quantity}.`,
+      //   });
+      //   setAlerted((s) => new Set(s).add(m.id));
+      // }
     } catch (err) {
       console.error("Error en ingreso:", err);
     } finally {
@@ -273,9 +314,9 @@ export default function Home() {
                     onChange={(e) => setInName(e.target.value)}
                   >
                     <option value="">Selecciona un objeto existente</option>
-                    {sortedMaterials.map((m) => (
+                    {filteredIngresoMaterials.map((m) => (
                       <option key={m.id} value={m.name}>
-                        {m.name}
+                        {m.name} {m.manufactur}
                       </option>
                     ))}
                   </select>
@@ -330,18 +371,29 @@ export default function Home() {
               **/}
               {/* <div>
                 <Label>Material</Label>
-                <select
-                  className="border rounded p-2 w-full"
-                  value={outMaterialId}
-                  onChange={(e) => setOutMaterialId(e.target.value ? Number(e.target.value) : "")}
-                >
-                  <option value="">Selecciona un material</option>
-                  {sortedMaterials.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name} {typeof m.quantity === "number" ? `(Stock: ${m.quantity})` : ""}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex flex-col gap-2">
+                  <Input
+                    placeholder="Buscar material..."
+                    value={outSearch}
+                    onChange={(e) => setOutSearch(e.target.value)}
+                  />
+                  <select
+                    className="border rounded p-2 w-full"
+                    size={5}
+                    value={outMaterialId}
+                    onChange={(e) => {
+                      setOutMaterialId(e.target.value ? Number(e.target.value) : "");
+                      setOutSearch("");
+                    }}
+                  >
+                    <option value="">Selecciona un material</option>
+                    {filteredEgresoMaterials.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name} - {m.manufactur} {typeof m.quantity === "number" ? `(Stock: ${m.quantity})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div>

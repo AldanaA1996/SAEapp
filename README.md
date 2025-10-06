@@ -1,4 +1,4 @@
-# SAEapp — Gestión de Inventario (Astro + React + Supabase)
+# LEIA — Gestión de Inventario (Astro + React + Supabase)
 
 Aplicación web para gestionar inventario con altas, bajas y modificaciones de materiales, búsquedas rápidas, alertas por stock bajo, registro de movimientos y exportación completa a CSV. Construida con Astro + React en el frontend y Supabase como backend de datos.
 

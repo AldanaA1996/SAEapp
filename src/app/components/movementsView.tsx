@@ -8,7 +8,8 @@ import { Trash2 } from "lucide-react";
 
 type MovementRecord = Record<string, any> & {
   id?: number | string;
-  created_at?: string;
+  created_at?: string;   // hora
+  created_date?: string; // fecha
   type?: string;
   item_name?: string;
   quantity?: number;
@@ -17,16 +18,14 @@ type MovementRecord = Record<string, any> & {
 };
 
 interface MovementsViewProps {
-  tableName?: string; 
+  tableName?: string;
 }
 
 export default function MovementsView({ tableName = "activity" }: MovementsViewProps) {
   const [data, setData] = useState<MovementRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [userByAuth, setUserByAuth] = useState<Record<string, { name?: string; volunteer?: string | number }>>({});
   const [inventoryById, setInventoryById] = useState<Record<string, { name?: string }>>({});
-  const [toolsById, setToolsById] = useState<Record<string, { name?: string }>>({});
   // Filters
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
@@ -42,54 +41,28 @@ export default function MovementsView({ tableName = "activity" }: MovementsViewP
       setLoading(true);
       setError(null);
       try {
-        // Try to order by created_at (desc) and then by created_date (desc) as secondary order
-        // to match the user's schema. We select all columns to keep it flexible (includes relations if configured in Supabase).
         const query = supabase
           .from(tableName)
-          .select("*")
-          .order("created_at", { ascending: false })
-          .order("created_date", { ascending: false });
+          .select("id, name, movementType, created_at, created_date, quantity, user:user_creator (id,name, email)")
+          .order("created_date", { ascending: false })
+          .order("created_at", { ascending: false });
         const { data, error } = await query;
         if (error) throw error;
         const rows = (data as MovementRecord[]) || [];
         setData(rows);
 
-        // Resolve related entities
-        const createdBySet = new Set<string>();
         const invIdSet = new Set<number>();
-        const toolIdSet = new Set<number>();
 
         for (const r of rows) {
-          const cb = (r as any).created_by as string | undefined;
-          if (cb) createdBySet.add(cb);
-          const invId = (r as any).name as number | undefined; // activity.name references inventory.id
-          if (typeof invId === 'number') invIdSet.add(invId);
-          const toolId = (r as any).tool as number | undefined; // activity.tool references tools.id
-          if (typeof toolId === 'number') toolIdSet.add(toolId);
-        }
-
-        if (createdBySet.size) {
-          const { data: usersData } = await supabase
-            .from('user')
-            .select('userAuth, name, volunteerNumber')
-            .in('userAuth', Array.from(createdBySet));
-          const mapUsers: Record<string, { name?: string; volunteer?: string | number }> = {};
-          (usersData || []).forEach((u: any) => {
-            mapUsers[u.userAuth] = {
-              name: u.name ?? undefined,
-              volunteer: u.volunteerNumber ?? undefined,
-            };
-          });
-          setUserByAuth(mapUsers);
-        } else {
-          setUserByAuth({});
+          const invId = (r as any).name as number | undefined;
+          if (typeof invId === "number") invIdSet.add(invId);
         }
 
         if (invIdSet.size) {
           const { data: invData } = await supabase
-            .from('inventory')
-            .select('id, name')
-            .in('id', Array.from(invIdSet));
+            .from("inventory")
+            .select("id, name")
+            .in("id", Array.from(invIdSet));
           const mapInv: Record<string, { name?: string }> = {};
           (invData || []).forEach((i: any) => {
             mapInv[String(i.id)] = { name: i.name };
@@ -97,20 +70,6 @@ export default function MovementsView({ tableName = "activity" }: MovementsViewP
           setInventoryById(mapInv);
         } else {
           setInventoryById({});
-        }
-
-        if (toolIdSet.size) {
-          const { data: toolData } = await supabase
-            .from('tools')
-            .select('id, name')
-            .in('id', Array.from(toolIdSet));
-          const mapTools: Record<string, { name?: string }> = {};
-          (toolData || []).forEach((t: any) => {
-            mapTools[String(t.id)] = { name: t.name };
-          });
-          setToolsById(mapTools);
-        } else {
-          setToolsById({});
         }
       } catch (err: any) {
         console.error("Error loading movements:", err);
@@ -122,7 +81,7 @@ export default function MovementsView({ tableName = "activity" }: MovementsViewP
     load();
   }, [tableName]);
 
-  // Derive movement types and apply filters (hooks must be before any early returns)
+  // Derive movement types
   const movementTypes = useMemo(() => {
     const set = new Set<string>();
     data.forEach((m) => {
@@ -132,32 +91,22 @@ export default function MovementsView({ tableName = "activity" }: MovementsViewP
     return Array.from(set).sort();
   }, [data]);
 
+  // Filtrado por fecha y tipo
   const filtered = useMemo(() => {
     const from = fromDate ? new Date(fromDate + "T00:00:00") : null;
     const to = toDate ? new Date(toDate + "T23:59:59.999") : null;
 
     const getWhen = (m: MovementRecord): Date | null => {
-      const cd = (m as any).created_date as string | undefined;
-      const ca = (m as any).created_at as string | undefined;
+      const cd = m.created_date;
       if (cd) {
-        // If we have both date and a time-like, try to combine
-        try {
-          if (ca && /\d{1,2}:\d{2}/.test(ca)) {
-            // Combine date part from created_date with time from created_at
-            const d = new Date(cd);
-            const [h, min, sec] = ca.split(":");
-            if (!isNaN(d.getTime())) {
-              d.setHours(Number(h) || 0, Number(min) || 0, Number(sec) || 0, 0);
-              return d;
-            }
-          }
-          const d = new Date(cd);
+        // Parse como fecha local, no UTC
+        const dateStr = String(cd).replace('T', ' ').replace('Z', '').trim();
+        const parts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2}):(\d{2})/);
+        if (parts) {
+          const [, year, month, day, hour, min, sec] = parts;
+          const d = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(min), Number(sec));
           if (!isNaN(d.getTime())) return d;
-        } catch {}
-      }
-      if (ca) {
-        const d = new Date(ca);
-        if (!isNaN(d.getTime())) return d;
+        }
       }
       return null;
     };
@@ -223,19 +172,10 @@ export default function MovementsView({ tableName = "activity" }: MovementsViewP
   }
 
   return (
-    <div className="space-y-3 p-2">
-      {/* Filters bar */}
+    <div className="flex flex-col space-y-3 p-2 w-[95%] self-center h-full">
+      {/* Barra de filtros */}
       <div className="sticky top-0 z-10 bg-white/70 backdrop-blur border rounded-md p-3 flex flex-wrap items-end gap-3">
-        {/* <div>
-          <label className="block text-xs text-gray-600 mb-1">Desde</label>
-          <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="w-44" />
-        </div>
         <div>
-          <label className="block text-xs text-gray-600 mb-1">Hasta</label>
-          <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-44" />
-        </div> */}
-        <div>
-          <label className="block text-xs text-gray-600 mb-1">Tipo</label>
           <select className="border rounded h-9 px-2" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
             <option value="">Todos</option>
             {movementTypes.map((t) => (
@@ -283,41 +223,66 @@ export default function MovementsView({ tableName = "activity" }: MovementsViewP
 
       {filtered.map((m) => {
         const id = String(m.id ?? cryptoRandomId());
-        const when = m.created_at ?? (m as any).created_date;
         const movementType = (m as any).movementType ?? (m as any).movementTyoe ?? m.type;
-        // Resolve names via maps (activity.name -> inventory.id, activity.tool -> tools.id)
+
+        const when = (() => {
+          const cd = m.created_date;
+          const ca = m.created_at;
+          
+          if (cd) {
+            // Parse como fecha local, no UTC
+            const dateStr = String(cd).replace('Z', '').trim();
+            
+            // Intenta parsear formato: YYYY-MM-DDTHH:mm:ss o YYYY-MM-DD HH:mm:ss
+            const parts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2}):(\d{2})/);
+            if (parts) {
+              const [, year, month, day, hour, min, sec] = parts;
+              const d = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(min), Number(sec));
+              if (!isNaN(d.getTime())) {
+                return formatDateTimeLocal(d);
+              }
+            }
+            
+            // Fallback: formato más flexible (puede que falte segundos)
+            const match2 = dateStr.match(/(\d{4})-(\d{2})-(\d{2})[T\s]?(\d{2}):(\d{2}):?(\d{2})?/);
+            if (match2) {
+              const [, year, month, day, hour, min, sec] = match2;
+              const d = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(min), Number(sec || 0));
+              if (!isNaN(d.getTime())) {
+                return formatDateTimeLocal(d);
+              }
+            }
+            
+            // Si nada funciona, mostrar el valor raw de created_date con la hora
+            return cd + (ca ? ` (${ca})` : "");
+          }
+          
+          // Si solo hay hora, mostrarla
+          return ca ? `${ca}` : "";
+        })();
+
         const material = (() => {
           const invId = (m as any).name as number | string | undefined;
           if (invId == null) return undefined;
           const rec = inventoryById[String(invId)];
           return rec?.name;
         })();
-        const tool = (() => {
-          const toolId = (m as any).tool as number | string | undefined;
-          if (toolId == null) return undefined;
-          const rec = toolsById[String(toolId)];
-          return rec?.name;
-        })();
-        const createdBy = (() => {
-          const authId = (m as any).created_by as string | undefined;
-          if (!authId) return undefined;
-          const rec = userByAuth[authId];
-          if (!rec) return undefined;
-          return rec.name || String(rec.volunteer) || undefined;
-        })();
 
-        const canSelect = (m as any).id != null;
-        const realId = (m as any).id as string | number | undefined;
+        const user = (m as any).user?.name as string | undefined;
+
+        const canSelect = m.id != null;
+        const realId = m.id as string | number | undefined;
         const checked = realId != null ? selectedIds.has(String(realId)) : false;
-        // Quantity chip with sign and color by movement type
-        const qtyVal = (m as any).quantity as number | undefined;
+
+        const qtyVal = m.quantity;
         const qtyChip = (() => {
           if (qtyVal == null) return null;
           const mt = String(movementType || "").toLowerCase();
+          const isNew = mt === "new";
           const isEntry = mt === "entry";
           const isExit = mt === "exit";
-          const sign = isEntry ? "+" : isExit ? "-" : "";
-          const color = isEntry ? "bg-green-50 text-green-700" : isExit ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700";
+          const sign = isNew ? "NEW +" : isEntry ? "+" : isExit ? "-" : "";
+          const color = isNew ? "bg-blue-50 text-blue-700" : isEntry ? "bg-green-50 text-green-700" : isExit ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700";
           return (
             <span className={`text-xs rounded px-2 py-0.5 ${color}`}>
               {sign}{qtyVal}
@@ -326,25 +291,20 @@ export default function MovementsView({ tableName = "activity" }: MovementsViewP
         })();
 
         return (
-          <Card key={id} className="p-4 shadow-sm border">
+          <Card key={id} className="p-4 w-[100%] self-center border">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="min-w-0">
+              <div className="min-w-[200px]">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-semibold">
-                    {material || tool || m.item_name || "Movimiento"}
+                    {material || m.item_name || "Movimiento"}
                   </span>
                   {qtyChip}
                 </div>
                 <div className="text-xs text-gray-500 mt-1 flex flex-wrap gap-3">
-                  {when && <span>{formatDateTime(when)}</span>}
-                  {createdBy && (
-                    <span>
-                      Creado por: <span className="font-medium">{createdBy}</span>
-                    </span>
-                  )}
+                  {when && <span>{when}</span>}
+                  {user && <span>Creado por: <span className="font-medium">{user}</span></span>}
                 </div>
               </div>
-              {/* Single delete button */}
               {!deleteMode && (
                 <div className="ml-auto pl-2">
                   <Button variant="outline" size="sm" onClick={() => requestDeleteSingle(realId)} disabled={!canSelect}>
@@ -354,7 +314,7 @@ export default function MovementsView({ tableName = "activity" }: MovementsViewP
               )}
               {deleteMode && (
                 <div className="ml-auto pl-2">
-                  <label className={`flex items-center gap-2 ${!canSelect ? 'opacity-40 cursor-not-allowed' : ''}`}>
+                  <label className={`flex items-center gap-2 ${!canSelect ? "opacity-40 cursor-not-allowed" : ""}`}>
                     <input
                       type="checkbox"
                       disabled={!canSelect}
@@ -369,7 +329,6 @@ export default function MovementsView({ tableName = "activity" }: MovementsViewP
           </Card>
         );
       })}
-      {/* Confirm deletion dialog */}
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
           <DialogHeader>
@@ -401,14 +360,33 @@ function formatDateTime(value?: string) {
   try {
     const d = new Date(value);
     if (isNaN(d.getTime())) return value;
-    return d.toLocaleString();
+    // Formato: DD/MM/YYYY HH:mm:ss (24 horas)
+    return d.toLocaleString("es-AR", { 
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
   } catch {
     return value;
   }
 }
 
+function formatDateTimeLocal(d: Date) {
+  // Formato: DD/MM/YYYY HH:mm:ss (24 horas) para objeto Date ya creado como local
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  const seconds = String(d.getSeconds()).padStart(2, '0');
+  return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+}
+
 function cryptoRandomId() {
-  // Fallback id for items without id
   try {
     return crypto.randomUUID();
   } catch {

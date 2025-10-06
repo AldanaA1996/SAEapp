@@ -93,7 +93,7 @@ export default function ShopList() {
                     Comprar: <span className="text-blue-700">{m.needed}</span> {m.unit ?? ""}
                   </p>
                   {m.manufactur && (
-                    <p className="text-xs text-gray-500">Fabricante: {m.manufactur}</p>
+                    <p className="text-xs text-gray-500">Marca: {m.manufactur}</p>
                   )}
                 </div>
               </div>
