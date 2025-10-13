@@ -177,8 +177,7 @@ function EgressMaterialForm() {
         {selectedMaterial && (
           <>
             <p className="text-sm p-2 bg-blue-50 border border-blue-200 rounded-md">
-              <span className="font-semibold">Seleccionado:</span> {selectedMaterial.name} <br />
-              <span className="font-semibold">Cantidad Disponible:</span> {selectedMaterial.quantity} {selectedMaterial.unit}
+              <span className="font-semibold">Seleccionado:</span> {selectedMaterial.name}, {selectedMaterial.manufactur} (Disp: {selectedMaterial.quantity} {selectedMaterial.unit}), {selectedMaterial.location}
             </p>
 
             <div>
