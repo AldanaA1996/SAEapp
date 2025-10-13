@@ -5,6 +5,7 @@ type Material = {
     id: string
     name: string
     quantity: number
+    location: string
 }
 
 export default function MaterialsList() {
@@ -16,7 +17,7 @@ useEffect(() => {
     const fetchMaterials = async() => {
         const { data, error } = await supabase
         .from("Inventory")
-        .select("id, name, quantity")
+        .select("id, name, quantity, location")
         .order("name", { ascending: true})
 
         if (error) {
@@ -42,7 +43,7 @@ useEffect(() => {
                             className="border p-2 rounded flex justify-between items-center">
                             <span>{m.name}</span>
                             <span className="font-semibold">{m.quantity}</span>
-
+                            <span className="font-semibold">{m.location}</span>
                         </li>
                     ))}
                 </ul>

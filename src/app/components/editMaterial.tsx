@@ -11,6 +11,8 @@ const Medidas = [ "Select",
   "Kg", "Mts", "Cms", "Cajas", "Unidades", "Paquetes", "Litros", "Gramos", "Piezas", "Bolsas", "Otros"
 ] as const;
 
+const Ubicaciones = [ "Select", "Pañol", "Taller", "Contenedor", "Ferreteria" ] as const;
+
 const schema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
   quantity: z.number().min(0, 'La cantidad no puede ser negativa'),
@@ -19,12 +21,12 @@ const schema = z.object({
   height: z.number().nullable().optional(),
   color: z.string().nullable().optional(),
   manufactur: z.string().nullable().optional(),
-  barcode: z.string().nullable().optional(),
-  hasQrCode: z.boolean().nullable().optional(),
+  // barcode: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
   unit: z.enum(Medidas),
   min_quantity: z.number().nullable().optional(),
   max_quantity: z.number().nullable().optional(),
+  location: z.enum(Ubicaciones),
 });
 
 interface EditMaterialFormProps {
@@ -37,12 +39,12 @@ interface EditMaterialFormProps {
     height?: number;
     color?: string;
     manufactur?: string;
-    barcode?: string;
+    // barcode?: string;
     min_quantity?: number;
     max_quantity?: number;
-    hasQrCode?: boolean;
     description?: string;
     unit: "Select" | "Kg" | "Mts" | "Cms" | "Cajas" | "Unidades" | "Paquetes" | "Litros" | "Gramos" | "Piezas" | "Bolsas" | "Otros";
+    location: "Select" | "Pañol" | "Taller" | "Contenedor" | "Ferreteria";
   };
   onClose: () => void;
 }
@@ -58,12 +60,12 @@ function EditMaterialForm({ material, onClose }: EditMaterialFormProps) {
       height: material.height,
       color: material.color,
       manufactur: material.manufactur,
-      barcode: material.barcode,
-      hasQrCode: material.hasQrCode,
+      // barcode: material.barcode,
       description: material.description,
       unit: material.unit,
       min_quantity: material.min_quantity,
       max_quantity: material.max_quantity,
+      location: material.location,
     },
   });
 
@@ -77,12 +79,12 @@ function EditMaterialForm({ material, onClose }: EditMaterialFormProps) {
       height: material.height ?? null,
       color: material.color ?? null,
       manufactur: material.manufactur ?? null,
-      barcode: material.barcode ?? null,
-      hasQrCode: material.hasQrCode ?? null,
+      // barcode: material.barcode ?? null,
       description: material.description ?? null,
       unit: material.unit,
       min_quantity: typeof material.min_quantity === 'number' ? material.min_quantity : null,
       max_quantity: typeof material.max_quantity === 'number' ? material.max_quantity : null,
+      location: material.location,
     });
   }, [material, form]);
 
@@ -139,35 +141,16 @@ function EditMaterialForm({ material, onClose }: EditMaterialFormProps) {
       <Label htmlFor="max_quantity">Stock máximo sugerido (opcional)</Label>
       <Input id="max_quantity" type="number"  min="0" {...form.register('max_quantity', { valueAsNumber: true })} />
      
-     <div className="flex flex-col md:flex-row gap-4">
-      <Label htmlFor="barcode">Bar Code</Label>
-      <Input id="barcode" {...form.register('barcode', { setValueAs: (v)=> (v === "" || v === undefined ? null : v) })} />
-      
-      <div className="flex flex-2/3 items-center gap-3">
-       <Label>Tiene código QR</Label>
-        <Controller
-          name="hasQrCode"
-          control={form.control}
-          render={({ field }) => (
-            <button
-              type="button"
-              role="switch"
-              aria-checked={!!field.value}
-              onClick={() => field.onChange(!field.value)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                field.value ? 'bg-green-500' : 'bg-gray-300'
-              }`}
-            >
-              <span
-                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-                  field.value ? 'translate-x-5' : 'translate-x-1'
-                }`}
-              />
-            </button>
-          )}
-        />
-      </div>
-      </div>
+     {/* <div className="flex flex-col md:flex-row gap-4"> */}
+      {/* <Label htmlFor="barcode">Bar Code</Label> */}
+      {/* <Input id="barcode" {...form.register('barcode', { setValueAs: (v)=> (v === "" || v === undefined ? null : v) })} /> */}
+    {/* </div> */}
+      <Label htmlFor="location">Ubicación</Label>
+      <select id="location" {...form.register('location')} className="border rounded p-2">
+        {Ubicaciones.map((ubicacion) => (
+          <option key={ubicacion} value={ubicacion}>{ubicacion}</option>
+        ))}
+      </select>
       <Label htmlFor="manufactur">Fabricante</Label>
       <Input id="manufactur" {...form.register('manufactur')} />
      
@@ -201,7 +184,7 @@ function EditMaterialForm({ material, onClose }: EditMaterialFormProps) {
       <Label htmlFor="color">Color</Label>
       <Input id="color" {...form.register('color')} />
       
-     
+      
 
       <Label htmlFor="description">Descripción</Label>
       <Input id="description" {...form.register('description')} />

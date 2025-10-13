@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useAuthenticationStore } from '../store/authentication';
 import { supabase } from '../lib/supabaseClient';
-import type { Material } from '../components/egressMaterial-form';
+import type { Material } from '../lib/types';
 
 export function useSearch () {
   const [searchTerm, setSearchTerm] = useState('');
@@ -9,46 +8,47 @@ export function useSearch () {
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  const user = useAuthenticationStore((state) => state.user);
-
-
 
   useEffect(() => {
-     if (!searchTerm.trim()) {
-       setMaterials([]);
-       return;
-     }
- 
-     const searchMaterials = async () => {
-       setIsLoading(true);
-       setError(null);
-       try {
-         const { data, error } = await supabase
-           .from('inventory')
-           .select('id, name, quantity, unit, location')
-           .like('name', `%${searchTerm}%`)
-           .gt('quantity', 0);
- 
-         if (error) throw error;
- 
-         setMaterials(data || []);
-       } catch (err: any) {
-         console.error("Error al buscar materiales:", err);
-         setError("No se pudieron cargar los materiales.");
-       } finally {
-         setIsLoading(false);
-       }
-     };
- 
-     const delayDebounceFn = setTimeout(() => {
-       searchMaterials();
-     }, 300);
- 
-     return () => clearTimeout(delayDebounceFn);
-   }, [searchTerm]);
+    if (!searchTerm.trim()) {
+      setMaterials([]);
+      return;
+    }
 
-   return { searchTerm, setSearchTerm, materials, isLoading, error, selectedMaterial, setSelectedMaterial, setMaterials };
-  }
+    // No buscar si ya hay un material seleccionado
+    if (selectedMaterial) {
+      return;
+    }
 
-  export default useSearch;
+    const searchMaterials = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const { data, error } = await supabase
+          .from('inventory')
+          .select('id, name, quantity, unit, location, manufactur')
+          .ilike('name', `%${searchTerm}%`)
+          .gt('quantity', 0);
+
+        if (error) throw error;
+
+        setMaterials(data || []);
+      } catch (err: any) {
+        console.error("Error al buscar materiales:", err);
+        setError("No se pudieron cargar los materiales.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    const delayDebounceFn = setTimeout(() => {
+      searchMaterials();
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm, selectedMaterial]);
+
+  return { searchTerm, setSearchTerm, materials, isLoading, error, selectedMaterial, setSelectedMaterial, setMaterials };
+}
+
+export default useSearch;

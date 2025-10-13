@@ -34,24 +34,24 @@ export default function Login() {
   };
 
   return (
-    
-    <div className="min-h-screen flex items-center justify-center">
-      <Card className="w-4/5 md:w-96 bg-gray-200 shadow-lg p-6">
-        <CardHeader className="flex flex-col items-center justify-center text-center">
+
+    <div className="min-h-screen h-full w-full flex items-center justify-center">
+      <Card className="bg-blue-200/40 w-full mx-6 md:mx-0 md:w-96 sm:w-96% backdrop-blur border-none rounded-xl shadow-lg ">
+        <CardHeader className="flex flex-col items-center text-center">
           <img src="/images/logo.png" alt="Logo LEIA" className="w-18 h-18 mb-4" />
-          <CardTitle className="text-2xl font-bold">Bienvenido a LEIA</CardTitle>
-         <CardDescription className="text-center text-sm text-gray-500">
+          <CardTitle className="text-2xl font-bold text-white">Bienvenido a LEIA</CardTitle>
+         <CardDescription className="text-center text-sm text-green-950">
             Inicia sesión para continuar
           </CardDescription>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="px-6">
           
           <form
-            className="flex flex-col gap-4"
+            className="flex flex-col w-full gap-4"
             onSubmit={handleLogin}
           >
-            <fieldset className="contents">
+            <fieldset className="contents w-full">
               <Input
                 required
                 type="email"
@@ -70,9 +70,15 @@ export default function Login() {
                 className="bg-white w-full"
               />
 
+              {error && (
+                <div className="flex justify-center">
+                  <p className="text-red-500">{error}</p>
+                </div>
+              )}
+
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full bg-green-950 hover:bg-green-800"
                 onSubmit={handleLogin}
               >
                 Iniciar sesión
@@ -81,15 +87,15 @@ export default function Login() {
           </form>
         </CardContent>
 
-        <CardFooter className="flex flex-col items-center justify-center">
-          <div className="flex justify-between pb-4 w-full">
-            <p className="text-sm text-gray-500">¿No tienes una cuenta?</p>
-            <a className="text-sm text-blue-400" href="/app/signup">
+        <CardFooter className="flex flex-col items-center">
+          <div className="flex justify-between pb-4 w-full ">
+            <p className="text-sm text-green-950">¿No tienes una cuenta?</p>
+            <a className="text-sm text-green-200 hover:text-green-400 underline" href="/app/signup">
               Regístrate
             </a>
           </div>
           <div className="flex justify-end border-t border-gray-300 pt-4 w-full">
-            <a className="text-sm text-blue-400" href="/forgot-password">
+            <a className="text-sm text-green-200 hover:text-green-400 underline" href="/forgot-password">
               ¿Olvidaste tu contraseña?
             </a>
           </div>

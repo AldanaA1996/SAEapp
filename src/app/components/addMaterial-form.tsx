@@ -45,7 +45,7 @@ const schema = z.object({
   location: z.enum(Ubicaciones).optional(),
   min_quantity: z.number().min(0).optional(),
   max_quantity: z.number().min(0).optional(),
-  barcode: z.string().optional(),
+  // barcode: z.string().optional(),
 });
 
 type Material = {
@@ -55,7 +55,7 @@ type Material = {
   unit: string | null;
   min_quantity?: number | null;
   manufactur?: string | null;
-  barcode?: string | null;
+  // barcode?: string | null;
 };
 
 function normalizedText(text: string | null | undefined) {
@@ -105,7 +105,7 @@ export default function AddMaterialForm() {
       location: "Select",
       min_quantity: undefined,
       max_quantity: undefined,
-      barcode: "",
+      // barcode: "",
     },
   });
 
@@ -150,7 +150,7 @@ export default function AddMaterialForm() {
             manufactur: values.manufactur && values.manufactur.trim() !== "" ? values.manufactur.trim() : null,
             min_quantity: values.min_quantity ?? null,
             max_quantity: values.max_quantity ?? null,
-            barcode: values.barcode && values.barcode.trim() !== "" ? values.barcode.trim() : null,
+            // barcode: values.barcode && values.barcode.trim() !== "" ? values.barcode.trim() : null,
             created_at: new Date().toISOString(),
           },
         ])
@@ -220,7 +220,7 @@ export default function AddMaterialForm() {
         normalizedName &&
         (!values.manufactur || values.manufactur.trim() === "") &&
         (!values.description || values.description.trim() === "") &&
-        (!values.barcode || values.barcode.trim() === "") &&
+        // (!values.barcode || values.barcode.trim() === "") &&
         (!values.min_quantity && values.min_quantity !== 0) &&
         (!values.max_quantity && values.max_quantity !== 0) &&
         (!values.location || values.location === "Select");
@@ -334,10 +334,10 @@ export default function AddMaterialForm() {
           ))}
         </select>
 
-        <Label htmlFor="barcode" className="font-semibold px-4">
+        {/* <Label htmlFor="barcode" className="font-semibold px-4">
           Código de barras (opcional)
         </Label>
-        <Input id="barcode" {...form.register("barcode")} placeholder="Escanéalo o escríbelo" />
+        <Input id="barcode" {...form.register("barcode")} placeholder="Escanéalo o escríbelo" /> */}
 
         <Label htmlFor="description" className="font-semibold px-4">
           Descripción (opcional)

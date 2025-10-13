@@ -150,14 +150,20 @@ export default function SignUp() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8" style={{
+      backgroundImage: 'url(/images/bg.jpg)',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+      backgroundAttachment: 'fixed',
+    }}>
       <div className="max-w-md w-full space-y-8">
-        <Card className="bg-white shadow-lg">
+        <Card className=" shadow-lg bg-blue-200/40 backdrop-blur rounded-xl">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold text-gray-900">
+            <CardTitle className="text-3xl  text-black">
               Crear Cuenta
             </CardTitle>
-            <CardDescription className="text-gray-600">
+            <CardDescription className="text-black">
               Regístrate en LEIA para comenzar
             </CardDescription>
           </CardHeader>
@@ -172,10 +178,11 @@ export default function SignUp() {
             <form className="space-y-4" onSubmit={handleSignUp}>
               
                 <div>
-                  <label htmlFor="nombre" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="nombre" className="block text-sm  text-white mb-1">
                     Nombre y Apellido
                   </label>
                   <Input
+                    className="bg-white w-full"
                     id="nombre"
                     name="nombre"
                     type="text"
@@ -188,10 +195,11 @@ export default function SignUp() {
                 </div>
                 
               <div>
-                <label htmlFor="numeroVoluntario" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="numeroVoluntario" className="block text-sm text-white mb-1">
                   Número de voluntario
                 </label>
                 <Input
+                  className="bg-white w-full"
                   id="numeroVoluntario"
                   name="numeroVoluntario"
                   type="number"
@@ -204,10 +212,11 @@ export default function SignUp() {
               </div>
 
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="email" className="block text-sm  text-white mb-1">
                   Correo Electrónico
                 </label>
                 <Input
+                  className="bg-white w-full"
                   id="email"
                   name="email"
                   type="email"
@@ -220,10 +229,11 @@ export default function SignUp() {
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="password" className="block text-sm  text-white mb-1">
                   Contraseña
                 </label>
                 <Input
+                  className="bg-white w-full"
                   id="password"
                   name="password"
                   type="password"
@@ -234,16 +244,17 @@ export default function SignUp() {
                   disabled={loading}
                   minLength={6}
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-white mt-1">
                   Mínimo 6 caracteres
                 </p>
               </div>
 
               <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="confirmPassword" className="block text-sm text-white mb-1">
                   Confirmar Contraseña
                 </label>
                 <Input
+                  className="bg-white w-full"
                   id="confirmPassword"
                   name="confirmPassword"
                   type="password"
@@ -255,59 +266,24 @@ export default function SignUp() {
                   minLength={6}
                 />
               </div>
-
+              <div className="flex justify-center">
               <Button
+              
                 type="submit"
-                className="w-full"
+                className="w-full md:w-4/5 lg:w-3/5 mt-4 bg-green-950 hover:bg-green-800"
                 disabled={loading}
               >
                 {loading ? "Creando cuenta..." : "Crear Cuenta"}
               </Button>
+              </div>
             </form>
 
-            <div className="mt-6">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">o</span>
-                </div>
-              </div>
-
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full mt-4"
-                onClick={handleGoogleSignUp}
-                disabled={loading}
-              >
-                <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-                  <path
-                    fill="currentColor"
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  />
-                  <path
-                    fill="currentColor"
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  />
-                  <path
-                    fill="currentColor"
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  />
-                  <path
-                    fill="currentColor"
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  />
-                </svg>
-                Continuar con Google
-              </Button>
-            </div>
+              
           </CardContent>
 
           <CardFooter className="flex flex-col items-center justify-center space-y-2">
             <div className="flex justify-between w-full text-sm">
-              <span className="text-gray-500">¿Ya tienes una cuenta?</span>
+              <span className="text-white">¿Ya tienes una cuenta?</span>
               <a className="text-blue-600 hover:text-blue-500 font-medium" href="/app">
                 Iniciar sesión
               </a>

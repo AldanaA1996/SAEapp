@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-/* Sonner CSS import removed due to package exports not exposing a CSS entry in this version. */
 
 @custom-variant dark (&:is(.dark *));
 

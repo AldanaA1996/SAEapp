@@ -4,9 +4,24 @@ import LayoutPage from "@/components/Layout/LayoutPage.astro";
 import LoginComponent from "@/app/components/page/Login"; // <-- la ruta real de tu componente
 import LoginLayout from "@/components/Layout/LoginLayout.astro";
 ---
-
+<style>
+  .login-conteiner {
+    background-image: url('/images/bg.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+</style>
 <LoginLayout title="Login">
   <LayoutPage>
-    <LoginComponent client:only="react" />
+    <div class="login-conteiner">
+    <LoginComponent client:only="react"  />
+    </div>
   </LayoutPage>
 </LoginLayout>

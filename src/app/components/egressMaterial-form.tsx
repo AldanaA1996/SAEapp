@@ -11,19 +11,12 @@ import { Label } from '@/app/components/ui/label';
 import { useAuthenticationStore } from '../store/authentication';
 import { supabase } from '../lib/supabaseClient';
 import { useSearch } from '../hooks/use-material-search';
+import type { Material } from '../lib/types';
 
 const schema = z.object({
   materialId: z.string().min(1, 'Debes seleccionar un material.'),
   quantity: z.number().min(1, 'La cantidad a retirar debe ser mayor a 0.'),
 });
-
-export type Material = {
-id: string;
-name: string;
-quantity: number;
-unit: string;
-location: string;
-};
 
 function EgressMaterialForm() {
   const { materials, isLoading, setSearchTerm, searchTerm, setMaterials } = useSearch();
@@ -173,7 +166,7 @@ function EgressMaterialForm() {
                   className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                   onClick={() => handleSelectMaterial(material)}
                 >
-                  {material.name} (Disp: {material.quantity} {material.unit})
+                 <span className="font-bold">{material.name}</span> {material.manufactur} | (Disp: {material.quantity} {material.unit}) | {material.location}
                 </li>
               ))}
             </ul>

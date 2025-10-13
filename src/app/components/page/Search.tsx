@@ -24,6 +24,7 @@ type Inventory = {
   barcode?: string | null;
   hasQRcode?: boolean | null;
   description?: string | null;
+  location?: "Select" | "Pañol" | "Taller" | "Contenedor" | "Ferreteria";
 };
 
 
@@ -134,6 +135,7 @@ export default function SearchPage() {
         m.manufactur ?? "",
         m.barcode ?? "",
         m.description ?? "",
+        m.location ?? "",
       ]
         .join(" ")
         .toLowerCase();
@@ -170,6 +172,7 @@ export default function SearchPage() {
     barcode: m.barcode ?? undefined,
     hasQrCode: (m as any).hasQrCode ?? (m as any).hasQRcode ?? undefined,
     description: m.description ?? undefined,
+    location: m.location ?? undefined,
   });
 
   return (
@@ -236,9 +239,7 @@ export default function SearchPage() {
                       {m.manufactur && (
                         <p className="text-sm text-gray-500">Fabricante: {m.manufactur}</p>
                       )}
-                      {m.barcode && (
-                        <p className="text-sm text-gray-500">Código: {m.barcode}</p>
-                      )}
+                    
                       {m.description && (
                         <p className="text-sm text-gray-500">{m.description}</p>
                       )}
@@ -275,8 +276,8 @@ export default function SearchPage() {
                   <p><strong>Cantidad:</strong> {selectedMaterial.quantity} {selectedMaterial.unit}</p>
                   {selectedMaterial.min_quantity && <p><strong>Mínimo:</strong> {selectedMaterial.min_quantity}</p>}
                   {selectedMaterial.manufactur && <p><strong>Fabricante:</strong> {selectedMaterial.manufactur}</p>}
-                  {selectedMaterial.barcode && <p><strong>Código:</strong> {selectedMaterial.barcode}</p>}
-                  {selectedMaterial.description && <p>{selectedMaterial.description}</p>}
+                  {selectedMaterial.description && <p><strong>Descripción:</strong> {selectedMaterial.description}</p>}
+                  {selectedMaterial.location && <p><strong>Ubicación:</strong> {selectedMaterial.location}</p>}
 
                 </div>
               )}
