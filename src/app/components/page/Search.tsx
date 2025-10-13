@@ -172,7 +172,7 @@ export default function SearchPage() {
     barcode: m.barcode ?? undefined,
     hasQrCode: (m as any).hasQrCode ?? (m as any).hasQRcode ?? undefined,
     description: m.description ?? undefined,
-    location: m.location ?? undefined,
+    location: m.location ?? 'Select',
   });
 
   return (
