@@ -14,7 +14,7 @@ export const seoConfig = {
 	type: "website",
 	image: {
 		url: "https://picsum.photos/1200/630", // Change this to your website's thumbnail.
-		alt: NAME, // Change this to your website's thumbnail description.
+		alt: DESCRIPTION, // Change this to your website's thumbnail description.
 		width: 1200,
 		height: 630
 	},
@@ -41,7 +41,7 @@ export const manifest: Partial<ManifestOptions> = {
 			type: "image/png"
 		},
 		{
-			src: "/favicons/favicon-512x512.png",
+			src: "/favicons/android-iconB-512x512.png",
 			sizes: "512x512",
 			type: "image/png"
 		},

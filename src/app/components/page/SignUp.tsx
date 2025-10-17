@@ -90,30 +90,6 @@ export default function SignUp() {
     }
   };
 
-  const handleGoogleSignUp = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/app/home`
-        }
-      });
-
-      if (error) {
-        setError(error.message);
-        setLoading(false);
-      }
-      // No setLoading(false) aquí porque la redirección es externa
-    } catch (err: any) {
-      setError("Error inesperado con Google Sign Up");
-      console.error("Error en Google sign up:", err);
-      setLoading(false);
-    }
-  };
-
   if (success) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">

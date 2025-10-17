@@ -1,7 +1,6 @@
 import Login from "@/app/components/page/Login";
 import Inventario from "@/app/components/page/Inventory";
 import Home from "./components/page/Home";
-import ToolsPage from "@/app/components/page/Tools";
 import SearchPage from "@/app/components/page/Search";
 import { useEffect } from "react";
 import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
@@ -55,15 +54,6 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Inventario />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/app/addTool"
-          element={
-            <ProtectedRoute>
-              <ToolsPage />
             </ProtectedRoute>
           }
         />

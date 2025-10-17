@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -334,10 +334,7 @@ export default function AddMaterialForm() {
           ))}
         </select>
 
-        {/* <Label htmlFor="barcode" className="font-semibold px-4">
-          Código de barras (opcional)
-        </Label>
-        <Input id="barcode" {...form.register("barcode")} placeholder="Escanéalo o escríbelo" /> */}
+        
 
         <Label htmlFor="description" className="font-semibold px-4">
           Descripción (opcional)

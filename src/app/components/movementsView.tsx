@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/app/lib/supabaseClient";
 import { Card } from "@/app/components/ui/card";
-import { Input } from "@/app/components/ui/input";
 import { Button } from "@/app/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
 import { Trash2 } from "lucide-react";

@@ -1,5 +1,5 @@
 ---
-import type { GetStaticPaths } from "astro";
+
 import "src/styles/global.css"
 
 //component imports
@@ -8,7 +8,7 @@ import Layout from "../../components/Layout/Layout.astro";
 import LayoutPage from "../../components/Layout/LayoutPage.astro";
 import { Toaster } from "@/app/components/ui/sonner";
 
-import { z } from "zod";
+
 const title = "LEIA"
 
 export function getStaticPaths() {
@@ -17,16 +17,11 @@ export function getStaticPaths() {
     { params: { route: "login" } },
     { params: { route: "home" }},
     { params: { route: "inventario" } },
-    { params: { route: "addTool"} },
     { params: { route: "search" } },
     { params: { route: "lista" } },
-    { params: { route: "movements" } },
-   
+    { params: { route: "movements" } },   
     { params: { route: "signup" } },
-    // { params: { route: "departments" } },
-    // ...departments.map((d) => ({
-    //   params: { route: `departments/${d.id}` },
-    // })),
+   
 ];
 }
 ---
