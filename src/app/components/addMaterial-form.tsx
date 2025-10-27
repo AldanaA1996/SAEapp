@@ -34,7 +34,7 @@ const Medidas = [
   "Otros",
 ] as const;
 
-const Ubicaciones = ["Select", "Pañol", "Taller", "Contenedor", "Ferreteria"] as const;
+const Ubicaciones = ["Select", "Pañol", "Taller", "Contenedor", "Ferreteria", "Subestació n"] as const;
 
 const schema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
